@@ -179,3 +179,26 @@ class Router:
             self.metrics.on_reject()
             raise RequestRejected(f"request {rid}: queue shut down") from None
         return req.slot
+
+
+class InferencePipeline:
+    def __init__(self, cache_mode="scoped", max_batch_size=8, batch_timeout_s=0.005,
+                 n_workers=4, queue_capacity=64, cache_capacity=256,
+                 embed_s=0.005, forward_base_s=0.020, forward_per_item_s=0.001):
+        self.max_batch_size = max_batch_size
+        self.batch_timeout_s = batch_timeout_s
+        self.forward_base_s = forward_base_s
+        self.forward_per_item_s = forward_per_item_s
+
+        self.cache = ThreadSafeLRUCache(
+            cache_capacity, embed_fn=make_embed(embed_s), mode=cache_mode,
+            lock=RankedLock(CACHE_LOCK, "cache_lock"))
+        self.queue = DynamicBatchQueue(queue_capacity,
+                                       lock=RankedLock(QUEUE_LOCK, "queue_lock"))
+        self.metrics = Metrics()
+        self.router = Router(self.cache, self.queue, self.metrics)
+        self.worker_errors = []
+        self._workers = [threading.Thread(target=self._worker_loop, name=f"worker-{i}",
+                                          daemon=True) for i in range(n_workers)]
+        for w in self._workers:
+            w.start()
