@@ -29,3 +29,11 @@ Exact numbers change from run to run (that is what a race is), but every run sho
 | BUG-4 | 82 → 84 | `hits = self.cache_hits` … `self.cache_hits = hits + 1` | read-modify-write | Hit counter loses updates, so the hit rate is wrong. |
 | BUG-5 | 87 → 89 | `if len(self.queue) < self.queue_capacity:` … `self.queue.append(...)` | check-then-act | Several producers pass the capacity check while the queue holds 9 items, then all append: the "bounded" queue reaches ~20. |
 | BUG-6 | 104 → 107 → 109 | `if self.queue:` … `item = self.queue[0]` … `del self.queue[0]` | check-then-act + non-atomic peek/remove | Two workers peek the same front item (processed twice), then both delete, so the next item is removed without ever being processed (lost). When the list empties between check and peek, `IndexError`. |
+
+## How each one is fixed (`fixed_server.py`)
+
+* **BUG-1, 2, 4:** wrap the whole read-modify-write in `metrics_lock`, so it becomes one indivisible step.
+* **BUG-3:** scoped locking + single-flight. Check the cache under `cache_cond`; the first thread to miss marks the key *in-flight*; others `wait()` in a `while` loop. `embed()` runs **outside** the lock.
+* **BUG-5, 6:** do the check and the action under the same `queue_lock` (`if len < cap: append`, `if queue: pop(0)`), so no other thread can change the list in between.
+
+The `time.sleep()` race windows remain in the fixed version and do no harm, which shows that the sleeps only expose the bugs; the missing locks are the cause.
