@@ -1,0 +1,16 @@
+PART 1 - LRU behaviour (capacity 3)
+put(A)             HEAD <-> A <-> TAIL   size=1
+put(B)             HEAD <-> B <-> A <-> TAIL   size=2
+put(C)             HEAD <-> C <-> B <-> A <-> TAIL   size=3
+get(A)  hit        HEAD <-> A <-> C <-> B <-> TAIL   size=3
+put(D)  evicts B   HEAD <-> D <-> A <-> C <-> TAIL   size=3
+get(B)  miss       HEAD <-> D <-> A <-> C <-> TAIL   size=3
+put(C)  update     HEAD <-> C <-> D <-> A <-> TAIL   size=3
+verify_integrity() -> OK, stats: {'size': 3, 'capacity': 3, 'hits': 1, 'misses': 1, 'lookups': 2, 'hit_rate': 0.5, 'evictions': 1, 'embed_calls': 0}
+
+PART 2 - coarse vs scoped locking (16 threads, 160 misses of 5 ms)
+mode      wall time   avg hit latency   p95 hit latency
+coarse        0.85s          39.709ms          73.795ms
+scoped        0.05s           0.003ms           0.003ms
+coarse: every miss holds the lock for 5 ms, so even cache HITS queue behind it.
+scoped: embeds run in parallel outside the lock; hits only wait microseconds.
