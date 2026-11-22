@@ -81,3 +81,11 @@ class FixedInferenceRouter:
                 return True
             self.rejected += 1
             return False
+
+    def worker_step(self):
+        with self.queue_lock:
+            if not self.queue:
+                return False
+            item = self.queue.pop(0)
+        self.processed.append(item)
+        return True
