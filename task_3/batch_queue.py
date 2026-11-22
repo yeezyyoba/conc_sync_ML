@@ -166,3 +166,12 @@ class DynamicBatchQueue:
             self._shutdown = True
             self._not_full.notify_all()
             self._not_empty.notify_all()
+
+    @property
+    def is_shutdown(self):
+        with self._lock:
+            return self._shutdown
+
+    def __len__(self):
+        with self._lock:
+            return self._count
