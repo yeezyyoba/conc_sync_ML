@@ -9,3 +9,22 @@ across embed() hurts.
 
 Run:  python demo_lru.py        (output also saved to results/demo_output.txt)
 """
+
+import os
+import threading
+import time
+
+from lru_cache import ThreadSafeLRUCache
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+out = []
+
+
+def say(s=""):
+    print(s)
+    out.append(s)
+
+
+def show(cache, action):
+    chain = " <-> ".join(str(k) for k in cache.keys_mru_to_lru())
+    say(f"{action:<18} HEAD <-> {chain or '(empty)'} <-> TAIL   size={len(cache)}")
