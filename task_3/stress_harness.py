@@ -72,3 +72,31 @@ def run_load(n_producers=16, items_each=150, n_workers=4, capacity=32,
             with lock:
                 consumed.extend(batch)
                 batch_sizes.append(len(batch))
+
+    ps = [threading.Thread(target=producer, args=(p,)) for p in range(n_producers)]
+    ws = [threading.Thread(target=worker) for _ in range(n_workers)]
+    cpu0, t0 = time.process_time(), time.perf_counter()
+    for t in ps + ws:
+        t.start()
+    if shutdown_after is not None:
+        time.sleep(shutdown_after)
+        q.shutdown()
+    for t in ps:
+        t.join(timeout=30)
+    if shutdown_after is None:
+        q.shutdown()
+    for t in ws:
+        t.join(timeout=30)
+    wall = time.perf_counter() - t0
+    cpu = time.process_time() - cpu0
+    hung = [t.name for t in ps + ws if t.is_alive()]
+    s = q.stats()
+    return {
+        "wall_s": wall, "cpu_s": cpu, "hung_threads": hung,
+        "attempts": attempts[0], "accepted": len(accepted), "rejected": len(rejected),
+        "consumed": len(consumed), "unique_consumed": len(set(consumed)),
+        "lost": len(set(accepted) - set(consumed)),
+        "duplicates": len(consumed) - len(set(consumed)),
+        "mean_batch": sum(batch_sizes) / len(batch_sizes) if batch_sizes else 0,
+        "stats": s,
+    }
