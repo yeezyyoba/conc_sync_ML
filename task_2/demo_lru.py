@@ -46,3 +46,32 @@ def part1():
     show(c, "put(C)  update")
     c.verify_integrity()
     say(f"verify_integrity() -> OK, stats: {c.stats()}")
+
+
+def timed_run(mode, threads=16, keys_per_thread=10, embed_s=0.005):
+    def embed(k):
+        time.sleep(embed_s)          # simulated model call
+        return f"vec({k})"
+    cache = ThreadSafeLRUCache(64, embed_fn=embed, mode=mode)
+    cache.put("hot", "vec(hot)")
+    hit_lat = []
+    lat_lock = threading.Lock()
+
+    def client(tid):
+        for i in range(keys_per_thread):
+            cache.get_or_compute(f"t{tid}-k{i}")           # always a miss
+            t0 = time.perf_counter()
+            cache.get_or_compute("hot")                    # always a hit
+            with lat_lock:
+                hit_lat.append((time.perf_counter() - t0) * 1000)
+
+    ts = [threading.Thread(target=client, args=(t,)) for t in range(threads)]
+    t0 = time.perf_counter()
+    for t in ts:
+        t.start()
+    for t in ts:
+        t.join()
+    wall = time.perf_counter() - t0
+    cache.verify_integrity()
+    hit_lat.sort()
+    return wall, sum(hit_lat) / len(hit_lat), hit_lat[int(0.95 * len(hit_lat))]
