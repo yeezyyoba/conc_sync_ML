@@ -108,3 +108,14 @@ class ThreadSafeLRUCache:
             self._unlink(lru)
             del self._map[lru.key]
             self.evictions += 1
+
+    def _insert_or_update(self, key, value):
+        node = self._map.get(key)
+        if node is not None:                 # already present: update + refresh
+            node.value = value
+            self._move_to_front(node)
+            return
+        node = _Node(key, value)
+        self._map[key] = node
+        self._push_front(node)
+        self._evict_if_needed()
