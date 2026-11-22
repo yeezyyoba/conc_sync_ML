@@ -47,3 +47,38 @@ from lru_cache import ThreadSafeLRUCache  # noqa: E402
 
 class RequestRejected(Exception):
     """The pipeline was shutting down and did not accept the request."""
+
+
+class ResultSlot:
+    """One-shot result holder a client blocks on (Lock + Condition)."""
+
+    def __init__(self):
+        self._cond = threading.Condition(RankedLock(RESULT_LOCK, "result_lock"))
+        self._done = False
+        self._value = None
+        self._error = None
+
+    def set_result(self, value):
+        with self._cond:
+            self._value, self._done = value, True
+            self._cond.notify_all()
+
+    def set_error(self, exc):
+        with self._cond:
+            self._error, self._done = exc, True
+            self._cond.notify_all()
+
+    def wait(self, timeout=None):
+        deadline = None if timeout is None else time.monotonic() + timeout
+        with self._cond:
+            while not self._done:                      # while, never if
+                if deadline is None:
+                    self._cond.wait()
+                else:
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        raise TimeoutError("no result (possible deadlock / lost request)")
+                    self._cond.wait(remaining)
+            if self._error is not None:
+                raise self._error
+            return self._value
