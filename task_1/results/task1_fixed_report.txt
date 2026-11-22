@@ -1,0 +1,39 @@
+=== Task 1 stress test: FIXED router ===
+clients=30  requests/client=40  workers=4  trials=3  queue_capacity=10
+
+--- trial 1 (seed 42, 0.51s) ---
+total_requests : expected   1200  observed   1200  lost 0
+total_tokens   : expected   6302  observed   6302  lost 0
+cache_hits     : expected   1188  observed   1188  lost 0
+embed() calls  : 12 for 12 unique prompts -> 0 duplicates (worst prompt embedded 1x)
+queue          : capacity 10, max length seen 10, violations 0
+workers        : accepted 1197, processed twice 0, lost 0, IndexErrors 0
+
+--- trial 2 (seed 43, 0.53s) ---
+total_requests : expected   1200  observed   1200  lost 0
+total_tokens   : expected   6353  observed   6353  lost 0
+cache_hits     : expected   1188  observed   1188  lost 0
+embed() calls  : 12 for 12 unique prompts -> 0 duplicates (worst prompt embedded 1x)
+queue          : capacity 10, max length seen 8, violations 0
+workers        : accepted 1200, processed twice 0, lost 0, IndexErrors 0
+
+--- trial 3 (seed 44, 0.50s) ---
+total_requests : expected   1200  observed   1200  lost 0
+total_tokens   : expected   6312  observed   6312  lost 0
+cache_hits     : expected   1188  observed   1188  lost 0
+embed() calls  : 12 for 12 unique prompts -> 0 duplicates (worst prompt embedded 1x)
+queue          : capacity 10, max length seen 10, violations 0
+workers        : accepted 1199, processed twice 0, lost 0, IndexErrors 0
+
+=== Summary: symptom -> unsynchronized code line (broken_server.py) ===
+bug    symptom                                    lines        per-trial counts
+BUG-1  Lost total_requests updates                [66, 68]     [0, 0, 0]
+BUG-2  Lost total_tokens updates                  [71, 73]     [0, 0, 0]
+BUG-3  Duplicate embed() calls (cache stampede)   [76, 80]     [0, 0, 0]
+BUG-4  Lost cache_hits updates                    [82, 84]     [0, 0, 0]
+BUG-5  Queue capacity violations                  [87, 89]     [0, 0, 0]
+BUG-6  Items processed twice (corruption)         [104, 107, 109] [0, 0, 0]
+BUG-6  Items lost / never processed               [104, 107, 109] [0, 0, 0]
+BUG-6  Worker IndexError crashes                  [104, 107, 109] [0, 0, 0]
+
+RESULT: all invariants hold (no races observed)
