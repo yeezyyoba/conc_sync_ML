@@ -175,3 +175,21 @@ class DynamicBatchQueue:
     def __len__(self):
         with self._lock:
             return self._count
+
+    def stats(self):
+        with self._lock:
+            return {
+                "capacity": self.capacity,
+                "size": self._count,
+                "max_size_seen": self.max_size_seen,
+                "total_put": self.total_put,
+                "total_got": self.total_got,
+                "batches": self.batches,
+                "mean_batch_size": self.total_got / self.batches if self.batches else 0.0,
+                "full_batches": self.full_batches,
+                "timeout_batches": self.timeout_batches,
+                "drain_batches": self.drain_batches,
+                "rejected_puts": self.rejected_puts,
+                "producer_waits": self.producer_waits,
+                "consumer_wakeups": self.consumer_wakeups,
+            }
