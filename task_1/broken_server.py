@@ -35,3 +35,10 @@ def fake_embed(prompt):
     """Simulated slow embedding model (e.g. a remote embedding API)."""
     time.sleep(0.002)
     return [float(ord(c) % 7) for c in prompt[:8]]
+
+
+class BrokenInferenceRouter:
+    def __init__(self, queue_capacity=10):
+        self.cache = {}                 # shared, unprotected
+        self.queue = []                 # shared, unprotected
+        self.queue_capacity = queue_capacity
