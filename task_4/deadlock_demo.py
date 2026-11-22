@@ -112,3 +112,28 @@ def part2_ordering():
     say(f"  counters: cache_writes={shared['cache_writes']} queue_ops={shared['queue_ops']} "
         f"(expected 16000 each)")
     return hung == 0 and shared["cache_writes"] == 16000
+
+
+def part3_disjoint():
+    say("\nPART 3 - disjoint scopes: release one lock before taking the next")
+    cache_lock, queue_lock = threading.Lock(), threading.Lock()
+    shared = {"cache_writes": 0, "queue_ops": 0}
+
+    def router(n):
+        for _ in range(n):
+            with cache_lock:
+                shared["cache_writes"] += 1
+            with queue_lock:                     # cache_lock already released
+                shared["queue_ops"] += 1
+
+    def worker(n):
+        for _ in range(n):
+            with queue_lock:
+                shared["queue_ops"] += 1
+            with cache_lock:                     # queue_lock already released
+                shared["cache_writes"] += 1
+
+    hung, secs = _run_iterations(router, worker)
+    say(f"  8 threads x 2000 iterations: hung threads = {hung}, time {secs:.2f}s")
+    say("  No thread ever holds two locks -> hold-and-wait is impossible -> no cycle.")
+    return hung == 0 and shared["queue_ops"] == 16000
