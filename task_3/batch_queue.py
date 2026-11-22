@@ -38,3 +38,6 @@ shutdown() sets a flag and notify_all()s both conditions:
     * workers keep receiving the remaining items (clean drain)
     * once the buffer is empty, get_batch() returns [] -> worker exits
 """
+
+import threading
+import time
