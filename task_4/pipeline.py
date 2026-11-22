@@ -120,3 +120,25 @@ class Metrics:
     def on_failure(self):
         with self._lock:
             self.failed += 1
+
+    def on_batch(self, requests, now):
+        with self._lock:
+            self.batch_sizes.append(len(requests))
+            for r in requests:
+                if r.rid in self.completed_ids:
+                    self.duplicate_completions += 1
+                self.completed_ids.add(r.rid)
+                self.completed += 1
+                self.latencies_ms.append((now - r.t_submit) * 1000.0)
+
+    def snapshot(self):
+        with self._lock:
+            return {
+                "accepted": self.accepted,
+                "completed": self.completed,
+                "rejected_on_shutdown": self.rejected_on_shutdown,
+                "failed": self.failed,
+                "duplicate_completions": self.duplicate_completions,
+                "latencies_ms": list(self.latencies_ms),
+                "batch_sizes": list(self.batch_sizes),
+            }
