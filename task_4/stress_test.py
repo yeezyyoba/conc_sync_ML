@@ -17,3 +17,20 @@ For every run it verifies:
 
 Run:  python stress_test.py      (report -> results/stress_report.txt)
 """
+
+import faulthandler
+import os
+import sys
+import time
+
+from lock_hierarchy import HIERARCHY, RankedLock
+from pipeline import InferencePipeline
+from workload import run_clients
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+out = []
+
+
+def say(s=""):
+    print(s)
+    out.append(s)
