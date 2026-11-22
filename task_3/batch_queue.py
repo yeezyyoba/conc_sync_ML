@@ -41,3 +41,7 @@ shutdown() sets a flag and notify_all()s both conditions:
 
 import threading
 import time
+
+
+class QueueShutdown(Exception):
+    """Raised by put() when the queue has been shut down."""
