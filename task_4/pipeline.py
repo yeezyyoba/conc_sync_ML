@@ -43,3 +43,7 @@ from batch_queue import DynamicBatchQueue, QueueShutdown  # noqa: E402
 from lock_hierarchy import (CACHE_LOCK, METRICS_LOCK, QUEUE_LOCK,  # noqa: E402
                             RESULT_LOCK, RankedLock)
 from lru_cache import ThreadSafeLRUCache  # noqa: E402
+
+
+class RequestRejected(Exception):
+    """The pipeline was shutting down and did not accept the request."""
