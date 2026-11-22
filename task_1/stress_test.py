@@ -195,3 +195,13 @@ def main():
         say(f"{tag:<6} {label:<42} {str(lines.get(tag, [])):<12} {counts}")
     say("\nRESULT: " + ("all invariants hold (no races observed)" if all_clean
                        else "races reproduced - see counts above"))
+
+    os.makedirs(os.path.join(HERE, "results"), exist_ok=True)
+    path = os.path.join(HERE, "results", f"task1_{name}_report.txt")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("\n".join(out) + "\n")
+    print(f"\nreport written to {path}")
+
+
+if __name__ == "__main__":
+    main()
