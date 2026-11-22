@@ -29,3 +29,17 @@ Request accounting (checked by stress_test.py)
     rejected_on_shutdown refused because shutdown had started
     invariant            accepted == completed + rejected_on_shutdown
 """
+
+import os
+import sys
+import threading
+import time
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(HERE, "..", "task_2"))
+sys.path.insert(0, os.path.join(HERE, "..", "task_3"))
+
+from batch_queue import DynamicBatchQueue, QueueShutdown  # noqa: E402
+from lock_hierarchy import (CACHE_LOCK, METRICS_LOCK, QUEUE_LOCK,  # noqa: E402
+                            RESULT_LOCK, RankedLock)
+from lru_cache import ThreadSafeLRUCache  # noqa: E402
