@@ -217,3 +217,26 @@ class InferencePipeline:
         for w in self._workers:
             w.join(join_timeout)
         return not any(w.is_alive() for w in self._workers)
+
+    # -- worker --------------------------------------------------------- #
+    def _forward(self, batch):
+        # One "GPU" call for the whole batch: fixed overhead + small per-item cost.
+        time.sleep(self.forward_base_s + self.forward_per_item_s * len(batch))
+        return [f"answer[{r.prompt[:24]}|emb={r.embedding[1]}]" for r in batch]
+
+    def _worker_loop(self):
+        while True:
+            batch = self.queue.get_batch(self.max_batch_size, self.batch_timeout_s)
+            if not batch:
+                return                                   # shut down + drained
+            try:
+                outputs = self._forward(batch)           # no lock held
+            except Exception as exc:                     # pragma: no cover
+                self.worker_errors.append(repr(exc))
+                for r in batch:
+                    self.metrics.on_failure()
+                    r.slot.set_error(exc)
+                continue
+            self.metrics.on_batch(batch, time.perf_counter())   # metrics_lock only
+            for r, out in zip(batch, outputs):
+                r.slot.set_result(out)                   # result_lock only
