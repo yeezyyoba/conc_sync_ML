@@ -101,3 +101,10 @@ class ThreadSafeLRUCache:
     def _move_to_front(self, node):
         self._unlink(node)
         self._push_front(node)
+
+    def _evict_if_needed(self):
+        while len(self._map) > self.capacity:
+            lru = self._tail.prev            # least recently used
+            self._unlink(lru)
+            del self._map[lru.key]
+            self.evictions += 1
