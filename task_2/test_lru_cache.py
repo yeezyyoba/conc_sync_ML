@@ -184,3 +184,27 @@ class ConcurrentLRUTests(unittest.TestCase):
             _, s = self._hammer(mode, capacity=32, key_space=48, ops=150)
             self.assertGreater(s["hits"], 0)
             self.assertGreater(s["misses"], 0)
+
+    def _concurrent_same_key(self, **kw):
+        cache = ThreadSafeLRUCache(8, embed_fn=lambda k: slow_embed(k, 0.02), **kw)
+        start = threading.Barrier(20)
+
+        def worker():
+            start.wait()
+            cache.get_or_compute("hot-prompt")
+        ts = [threading.Thread(target=worker) for _ in range(20)]
+        for t in ts:
+            t.start()
+        for t in ts:
+            t.join()
+        return cache
+
+    def test_single_flight_prevents_stampede(self):
+        cache = self._concurrent_same_key(mode="scoped", single_flight=True)
+        self.assertEqual(cache.embed_calls, 1)
+        self.assertEqual(cache.hits, 19)
+
+    def test_without_single_flight_stampede_is_visible(self):
+        cache = self._concurrent_same_key(mode="scoped", single_flight=False)
+        self.assertGreater(cache.embed_calls, 1)     # duplicate work, but safe
+        self.assertTrue(cache.verify_integrity())    # structure still intact
