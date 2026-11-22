@@ -94,3 +94,29 @@ class Request:
         self.cache_hit = cache_hit
         self.t_submit = t_submit
         self.slot = ResultSlot()
+
+
+class Metrics:
+    def __init__(self):
+        self._lock = RankedLock(METRICS_LOCK, "metrics_lock")
+        self.accepted = 0
+        self.completed = 0
+        self.rejected_on_shutdown = 0
+        self.failed = 0
+        self.latencies_ms = []
+        self.batch_sizes = []
+        self.completed_ids = set()
+        self.duplicate_completions = 0
+
+    def on_accept(self):
+        with self._lock:
+            self.accepted += 1
+            return self.accepted            # also used as the request id
+
+    def on_reject(self):
+        with self._lock:
+            self.rejected_on_shutdown += 1
+
+    def on_failure(self):
+        with self._lock:
+            self.failed += 1
