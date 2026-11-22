@@ -202,3 +202,18 @@ class InferencePipeline:
                                           daemon=True) for i in range(n_workers)]
         for w in self._workers:
             w.start()
+
+    # -- public API ----------------------------------------------------- #
+    def submit(self, prompt):
+        return self.router.submit(prompt)
+
+    def infer(self, prompt, timeout=None):
+        return self.submit(prompt).wait(timeout)
+
+    def shutdown(self, join_timeout=10.0):
+        """Stop accepting, drain the queue, join workers. Returns True if clean."""
+        self.router.close()
+        self.queue.shutdown()
+        for w in self._workers:
+            w.join(join_timeout)
+        return not any(w.is_alive() for w in self._workers)
