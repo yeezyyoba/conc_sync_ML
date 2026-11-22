@@ -79,3 +79,22 @@ class RankedLock:
                     f"acquiring {self.name}(rank {self.rank}) while holding "
                     f"{top.name}(rank {top.rank}); locks must be taken in "
                     f"increasing rank order: {[n for _, n, _ in HIERARCHY]}")
+
+    def acquire(self, blocking=True, timeout=-1):
+        self._check()
+        ok = self._lock.acquire(blocking, timeout)
+        if ok:
+            self._owner = threading.get_ident()
+            if not hasattr(_held, "stack"):
+                _held.stack = []
+            _held.stack.append(self)
+        return ok
+
+    def release(self):
+        stack = getattr(_held, "stack", [])
+        if stack and stack[-1] is self:
+            stack.pop()
+        elif self in stack:          # out-of-LIFO release is allowed
+            stack.remove(self)
+        self._owner = None
+        self._lock.release()
