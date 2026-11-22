@@ -137,3 +137,30 @@ def part3_disjoint():
     say(f"  8 threads x 2000 iterations: hung threads = {hung}, time {secs:.2f}s")
     say("  No thread ever holds two locks -> hold-and-wait is impossible -> no cycle.")
     return hung == 0 and shared["queue_ops"] == 16000
+
+
+def part4_ranked():
+    say("\nPART 4 - RankedLock catches a wrong-order acquire before it can deadlock")
+    cache_lock = RankedLock(CACHE_LOCK, "cache_lock")
+    queue_lock = RankedLock(QUEUE_LOCK, "queue_lock")
+    with cache_lock:
+        with queue_lock:
+            say("  cache_lock(10) -> queue_lock(20): allowed")
+    try:
+        with queue_lock:
+            with cache_lock:
+                say("  this line is never reached")
+    except LockOrderViolation as exc:
+        say(f"  queue_lock(20) -> cache_lock(10): LockOrderViolation raised")
+        say(f"    {exc}")
+        return True
+    return False
+
+
+if __name__ == "__main__":
+    results = [part1_deadlock(), part2_ordering(), part3_disjoint(), part4_ranked()]
+    say("\nSUMMARY: deadlock reproduced = %s, ordering fix OK = %s, "
+        "disjoint fix OK = %s, hierarchy enforced = %s" % tuple(results))
+    os.makedirs(os.path.join(HERE, "results"), exist_ok=True)
+    with open(os.path.join(HERE, "results", "deadlock_demo.txt"), "w", encoding="utf-8") as f:
+        f.write("\n".join(out) + "\n")
