@@ -77,3 +77,8 @@ class ThreadSafeLRUCache:
         self._head.next = self._tail
         self._tail.prev = self._head
         self._inflight = set()
+
+        self.hits = 0
+        self.misses = 0
+        self.evictions = 0
+        self.embed_calls = 0
