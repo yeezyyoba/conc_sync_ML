@@ -208,3 +208,32 @@ class ConcurrentLRUTests(unittest.TestCase):
         cache = self._concurrent_same_key(mode="scoped", single_flight=False)
         self.assertGreater(cache.embed_calls, 1)     # duplicate work, but safe
         self.assertTrue(cache.verify_integrity())    # structure still intact
+
+    def _max_parallel_embeds(self, mode):
+        active, peak, lock = [0], [0], threading.Lock()
+
+        def tracked_embed(k):
+            with lock:
+                active[0] += 1
+                peak[0] = max(peak[0], active[0])
+            time.sleep(0.01)
+            with lock:
+                active[0] -= 1
+            return k
+        cache = ThreadSafeLRUCache(64, embed_fn=tracked_embed, mode=mode)
+        ts = [threading.Thread(target=cache.get_or_compute, args=(i,)) for i in range(16)]
+        for t in ts:
+            t.start()
+        for t in ts:
+            t.join()
+        return peak[0]
+
+    def test_coarse_mode_serializes_embed(self):
+        self.assertEqual(self._max_parallel_embeds("coarse"), 1)
+
+    def test_scoped_mode_runs_embeds_in_parallel(self):
+        self.assertGreater(self._max_parallel_embeds("scoped"), 1)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
