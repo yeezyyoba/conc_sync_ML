@@ -13,3 +13,16 @@ conc_sync/
 ├── task_3/   Bounded dynamic inference batching queue (Lock + Condition)
 └── task_4/   Integrated pipeline: stress test, deadlock demo, benchmarks
 ```
+
+## Task 1: Expose the bugs in a broken baseline server
+
+```bash
+cd task_1
+python stress_test.py           # broken router: every race reproduced
+python stress_test.py --fixed   # fixed router: every count is 0
+```
+
+* `broken_server.py`: unsynchronized router (dict cache, list queue, telemetry counters); every bug is tagged `# [BUG-n]`
+* `fixed_server.py`: same API with each bug fixed, for comparison
+* `stress_test.py`: 30 client threads + 4 workers, 3 seeded trials, maps each symptom to its line
+* `BUG_REPORT.md`: symptom → exact line → why → fix
