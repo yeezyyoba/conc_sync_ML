@@ -157,3 +157,12 @@ class DynamicBatchQueue:
             if self._count >= max_batch_size or (self._shutdown and self._count):
                 self._not_empty.notify_all()          # let another worker continue
             return batch
+
+    # ------------------------------------------------------------------ #
+    # Lifecycle / inspection
+    # ------------------------------------------------------------------ #
+    def shutdown(self):
+        with self._lock:
+            self._shutdown = True
+            self._not_full.notify_all()
+            self._not_empty.notify_all()
