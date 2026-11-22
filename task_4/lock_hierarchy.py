@@ -51,3 +51,8 @@ _held = threading.local()           # per-thread stack of held RankedLocks
 
 class LockOrderViolation(RuntimeError):
     """Raised when a thread acquires locks out of hierarchy order."""
+
+
+def held_locks():
+    """Names of the RankedLocks the current thread holds (outermost first)."""
+    return [lk.name for lk in getattr(_held, "stack", [])]
