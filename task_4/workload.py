@@ -27,3 +27,31 @@ def run_clients(pipeline, n_clients=32, n_requests=40, hot_ratio=0.7, seed=1,
     lock = threading.Lock()
     client = {"ok": 0, "rejected": 0, "timeouts": 0, "errors": 0, "answers": []}
     start = threading.Barrier(n_clients + 1)
+
+    def one_client(cid):
+        rng = random.Random(seed * 10_000 + cid)
+        start.wait()
+        left_in_burst = rng.randint(*burst)
+        for i in range(n_requests):
+            if rng.random() < hot_ratio:
+                prompt = rng.choice(HOT_PROMPTS)
+            else:
+                prompt = f"unique prompt c{cid} r{i} seed{seed}"
+            try:
+                answer = pipeline.submit(prompt).wait(result_timeout)
+                with lock:
+                    client["ok"] += 1
+                    client["answers"].append(answer)
+            except RequestRejected:
+                with lock:
+                    client["rejected"] += 1
+            except TimeoutError:
+                with lock:
+                    client["timeouts"] += 1
+            except Exception:                         # pragma: no cover
+                with lock:
+                    client["errors"] += 1
+            left_in_burst -= 1
+            if left_in_burst == 0:                    # end of burst: idle a bit
+                time.sleep(rng.uniform(*pause_s))
+                left_in_burst = rng.randint(*burst)
