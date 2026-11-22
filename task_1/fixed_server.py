@@ -69,3 +69,15 @@ class FixedInferenceRouter:
                 self.cache[prompt] = vec
                 self.inflight.discard(prompt)
                 self.cache_cond.notify_all()
+
+        # ---- bounded queue: check + append is one atomic step -----------
+        with self.queue_lock:
+            if len(self.queue) < self.queue_capacity:
+                self.queue.append(request_id)
+                n = len(self.queue)
+                self.max_queue_len_seen = max(self.max_queue_len_seen, n)
+                if n > self.queue_capacity:
+                    self.capacity_violations.append(n)
+                return True
+            self.rejected += 1
+            return False
