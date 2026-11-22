@@ -82,3 +82,20 @@ class BrokenInferenceRouter:
             hits = self.cache_hits             # [BUG-4] read
             _race_window()
             self.cache_hits = hits + 1         # [BUG-4] write
+
+        # --- bounded queue: capacity check-then-append without a lock ---
+        if len(self.queue) < self.queue_capacity:   # [BUG-5] CHECK capacity
+            _race_window()
+            self.queue.append(request_id)            # [BUG-5] ACT (overflow)
+            n = len(self.queue)
+            if n > self.max_queue_len_seen:
+                self.max_queue_len_seen = n
+            if n > self.queue_capacity:
+                self.capacity_violations.append(n)
+            return True
+        self.rejected += 1
+        return False
+
+    # ------------------------------------------------------------------ #
+    # Worker side
+    # ------------------------------------------------------------------ #
