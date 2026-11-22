@@ -41,3 +41,12 @@ CONFIGS = [
 WORKLOAD = dict(n_clients=32, n_requests=40, hot_ratio=0.7)
 PIPELINE = dict(n_workers=4, queue_capacity=64, cache_capacity=256, embed_s=0.005,
                 forward_base_s=0.020, forward_per_item_s=0.001, batch_timeout_s=0.005)
+
+
+def run_config(cache_mode, max_batch, seed):
+    p = InferencePipeline(cache_mode=cache_mode, max_batch_size=max_batch, **PIPELINE)
+    c = run_clients(p, seed=seed, **WORKLOAD)
+    clean = p.shutdown()
+    r = p.report(c["wall_s"])
+    r["clean"] = clean and not c["hung_clients"] and r["completed"] == r["accepted"]
+    return r
