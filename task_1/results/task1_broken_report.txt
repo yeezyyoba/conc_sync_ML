@@ -1,0 +1,39 @@
+=== Task 1 stress test: BROKEN router ===
+clients=30  requests/client=40  workers=4  trials=3  queue_capacity=10
+
+--- trial 1 (seed 42, 0.13s) ---
+total_requests : expected   1200  observed    173  lost 1027
+total_tokens   : expected   6302  observed    858  lost 5444
+cache_hits     : expected   1167  observed    177  lost 990
+embed() calls  : 33 for 12 unique prompts -> 21 duplicates (worst prompt embedded 7x)
+queue          : capacity 10, max length seen 20, violations 216
+workers        : accepted 422, processed twice 192, lost 192, IndexErrors 6
+
+--- trial 2 (seed 43, 0.15s) ---
+total_requests : expected   1200  observed    178  lost 1022
+total_tokens   : expected   6353  observed    896  lost 5457
+cache_hits     : expected   1161  observed    170  lost 991
+embed() calls  : 39 for 12 unique prompts -> 27 duplicates (worst prompt embedded 7x)
+queue          : capacity 10, max length seen 20, violations 223
+workers        : accepted 408, processed twice 179, lost 179, IndexErrors 5
+
+--- trial 3 (seed 44, 0.16s) ---
+total_requests : expected   1200  observed    172  lost 1028
+total_tokens   : expected   6312  observed    871  lost 5441
+cache_hits     : expected   1160  observed    172  lost 988
+embed() calls  : 40 for 12 unique prompts -> 28 duplicates (worst prompt embedded 5x)
+queue          : capacity 10, max length seen 20, violations 240
+workers        : accepted 440, processed twice 203, lost 203, IndexErrors 5
+
+=== Summary: symptom -> unsynchronized code line (broken_server.py) ===
+bug    symptom                                    lines        per-trial counts
+BUG-1  Lost total_requests updates                [66, 68]     [1027, 1022, 1028]
+BUG-2  Lost total_tokens updates                  [71, 73]     [5444, 5457, 5441]
+BUG-3  Duplicate embed() calls (cache stampede)   [76, 80]     [21, 27, 28]
+BUG-4  Lost cache_hits updates                    [82, 84]     [990, 991, 988]
+BUG-5  Queue capacity violations                  [87, 89]     [216, 223, 240]
+BUG-6  Items processed twice (corruption)         [104, 107, 109] [192, 179, 203]
+BUG-6  Items lost / never processed               [104, 107, 109] [192, 179, 203]
+BUG-6  Worker IndexError crashes                  [104, 107, 109] [6, 5, 5]
+
+RESULT: races reproduced - see counts above
