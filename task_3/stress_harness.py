@@ -123,3 +123,34 @@ def report(name, r, capacity=32):
     for k, ok in checks.items():
         say(f"  [{'PASS' if ok else 'FAIL'}] {k}")
     return all(checks.values())
+
+
+def idle_cpu(kind, seconds=1.0, n_workers=4):
+    """CPU seconds burned by idle workers over `seconds` of wall time."""
+    q = DynamicBatchQueue(8)
+    stop = threading.Event()
+    lock, buf = threading.Lock(), []
+
+    def condition_worker():
+        while q.get_batch(8, 0.05):
+            pass
+
+    def polling_worker():                       # the anti-pattern from the slides
+        while not stop.is_set():
+            with lock:
+                if buf:
+                    buf.pop()
+
+    target = condition_worker if kind == "condition" else polling_worker
+    ws = [threading.Thread(target=target) for _ in range(n_workers)]
+    for t in ws:
+        t.start()
+    time.sleep(0.1)
+    c0 = time.process_time()
+    time.sleep(seconds)
+    cpu = time.process_time() - c0
+    stop.set()
+    q.shutdown()
+    for t in ws:
+        t.join(5)
+    return cpu, q.stats()["consumer_wakeups"]
