@@ -42,3 +42,13 @@ import threading
 
 class CacheCorruptionError(AssertionError):
     """Raised by verify_integrity() when an invariant is broken."""
+
+
+class _Node:
+    __slots__ = ("key", "value", "prev", "next")
+
+    def __init__(self, key=None, value=None):
+        self.key = key
+        self.value = value
+        self.prev = None
+        self.next = None
