@@ -142,3 +142,10 @@ class Metrics:
                 "latencies_ms": list(self.latencies_ms),
                 "batch_sizes": list(self.batch_sizes),
             }
+
+
+def make_embed(embed_s):
+    def embed(prompt):
+        time.sleep(embed_s)                       # simulated embedding model
+        return (len(prompt), sum(map(ord, prompt)) % 9973)
+    return embed
