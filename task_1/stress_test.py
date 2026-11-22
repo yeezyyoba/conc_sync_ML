@@ -134,3 +134,15 @@ def run_trial(router_cls, n_clients, reqs_per_client, n_workers, seed):
         "items_lost_never_processed": lost,
         "worker_index_errors": len(router.worker_errors),
     }
+
+
+CHECKS = [
+    ("BUG-1", "Lost total_requests updates", "lost_request_updates"),
+    ("BUG-2", "Lost total_tokens updates", "lost_token_updates"),
+    ("BUG-3", "Duplicate embed() calls (cache stampede)", "duplicate_embed_calls"),
+    ("BUG-4", "Lost cache_hits updates", "lost_hit_updates"),
+    ("BUG-5", "Queue capacity violations", "capacity_violations"),
+    ("BUG-6", "Items processed twice (corruption)", "items_processed_twice"),
+    ("BUG-6", "Items lost / never processed", "items_lost_never_processed"),
+    ("BUG-6", "Worker IndexError crashes", "worker_index_errors"),
+]
