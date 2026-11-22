@@ -90,3 +90,10 @@ class ThreadSafeLRUCache:
         node.prev.next = node.next
         node.next.prev = node.prev
         node.prev = node.next = None
+
+    def _push_front(self, node):
+        first = self._head.next
+        node.prev = self._head
+        node.next = first
+        self._head.next = node
+        first.prev = node
