@@ -18,3 +18,14 @@ Full logs: `results/task1_broken_report.txt`, `results/task1_fixed_report.txt`.
 | BUG-6 | Worker `IndexError` crashes | 6 | 5 | 5 |
 
 Exact numbers change from run to run (that is what a race is), but every run shows every symptom.
+
+## Symptom → exact line in `broken_server.py`
+
+| Bug | Line(s) | Code | Race type | Why it breaks |
+|---|---|---|---|---|
+| BUG-1 | 66 → 68 | `current = self.total_requests` … `self.total_requests = current + 1` | read-modify-write | Two threads read the same value, both write value+1, one increment vanishes. This is exactly what `+=` does in bytecode (LOAD → ADD → STORE). |
+| BUG-2 | 71 → 73 | same pattern on `total_tokens` | read-modify-write | Same lost update, but each lost write drops several tokens at once. |
+| BUG-3 | 76 → 80 | `if prompt not in self.cache:` … `self.cache[prompt] = vec` | check-then-act | Many threads see the miss before the first one writes back, so all of them call the slow `embed()` (cache stampede) and overwrite each other's entry. |
+| BUG-4 | 82 → 84 | `hits = self.cache_hits` … `self.cache_hits = hits + 1` | read-modify-write | Hit counter loses updates, so the hit rate is wrong. |
+| BUG-5 | 87 → 89 | `if len(self.queue) < self.queue_capacity:` … `self.queue.append(...)` | check-then-act | Several producers pass the capacity check while the queue holds 9 items, then all append: the "bounded" queue reaches ~20. |
+| BUG-6 | 104 → 107 → 109 | `if self.queue:` … `item = self.queue[0]` … `del self.queue[0]` | check-then-act + non-atomic peek/remove | Two workers peek the same front item (processed twice), then both delete, so the next item is removed without ever being processed (lost). When the list empties between check and peek, `IndexError`. |
