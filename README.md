@@ -56,3 +56,25 @@ python stress_harness.py     # steady load, mid-run shutdown, idle-CPU busy-spin
   * `shutdown()` calls `notify_all()` on both conditions, drains the remaining items, and leaves no thread hanging
 * `stress_harness.py`: checks `attempts == accepted + rejected`, `accepted == consumed`, no duplicates, no overflow, no hung threads
 * `results/`: test log and stress report
+
+## Task 4: Integrate, stress-test and benchmark the pipeline
+
+```bash
+cd task_4
+python deadlock_demo.py   # circular wait reproduced, then cured (ordering, disjoint scopes, RankedLock)
+python stress_test.py     # 8 heavy runs incl. mid-run shutdown: no deadlocks, no lost requests
+python benchmark.py       # coarse vs scoped, batch 1 vs batch 8 (about 1 minute)
+```
+
+* `pipeline.py`: Client → `Router` → `ThreadSafeLRUCache` → `DynamicBatchQueue` → worker pool → `ResultSlot`
+* `lock_hierarchy.py`: global lock ranks `cache_lock(10) → queue_lock(20) → metrics_lock(30) → result_lock(40)`, enforced at runtime by `RankedLock`
+* `workload.py`: shared bursty, mixed hit/miss, closed-loop client threads
+* `stress_test.py`: verifies `accepted == completed + rejected_on_shutdown` and checks for deadlocks, duplicates, cache integrity and queue capacity
+* `benchmark.py`: throughput, avg/p95 latency, cache hit rate, batch utilization
+* `RESULTS.md`: lock hierarchy, reliability results, comparison tables and the explanation of the numbers
+
+| Configuration | Throughput (req/s) | Avg latency (ms) | p95 latency (ms) |
+|---|---|---|---|
+| coarse lock, batch 8 | 553.6 | 55.0 | 82.1 |
+| scoped lock, batch 1 | 187.5 | 167.1 | 172.2 |
+| **scoped lock, batch 8** | **882.3** | **32.7** | **43.3** |
