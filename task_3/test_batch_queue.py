@@ -146,3 +146,19 @@ class ShutdownTests(unittest.TestCase):
         t.join(1)
         self.assertFalse(t.is_alive())
         self.assertIsInstance(box.get("error"), QueueShutdown)
+
+    def test_put_after_shutdown_rejected(self):
+        q = DynamicBatchQueue(4)
+        q.shutdown()
+        with self.assertRaises(QueueShutdown):
+            q.put("late")
+        self.assertEqual(q.stats()["rejected_puts"], 1)
+
+    def test_shutdown_drains_remaining_items(self):
+        q = DynamicBatchQueue(10)
+        for i in range(7):
+            q.put(i)
+        q.shutdown()
+        self.assertEqual(q.get_batch(4, 1.0), [0, 1, 2, 3])
+        self.assertEqual(q.get_batch(4, 1.0), [4, 5, 6])
+        self.assertEqual(q.get_batch(4, 1.0), [])
