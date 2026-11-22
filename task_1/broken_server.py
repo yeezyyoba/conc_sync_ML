@@ -71,3 +71,14 @@ class BrokenInferenceRouter:
         current_tokens = self.total_tokens     # [BUG-2] read
         _race_window()
         self.total_tokens = current_tokens + tokens   # [BUG-2] write
+
+        # --- cache: check-then-act without a lock -----------------------
+        if prompt not in self.cache:           # [BUG-3] CHECK
+            _race_window()
+            vec = fake_embed(prompt)
+            self.embed_calls.append(prompt)
+            self.cache[prompt] = vec           # [BUG-3] ACT (stampede / overwrite)
+        else:
+            hits = self.cache_hits             # [BUG-4] read
+            _race_window()
+            self.cache_hits = hits + 1         # [BUG-4] write
