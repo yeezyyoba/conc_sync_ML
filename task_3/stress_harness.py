@@ -30,3 +30,12 @@ out = []
 def say(s=""):
     print(s)
     out.append(s)
+
+
+def run_load(n_producers=16, items_each=150, n_workers=4, capacity=32,
+             max_batch=8, timeout_s=0.01, shutdown_after=None, seed=7):
+    q = DynamicBatchQueue(capacity)
+    lock = threading.Lock()
+    accepted, rejected, consumed, batch_sizes = [], [], [], []
+    attempts = [0]
+    start = threading.Barrier(n_producers + n_workers)
