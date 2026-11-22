@@ -16,3 +16,7 @@ Same public API as BrokenInferenceRouter, with each bug fixed:
 Lock order (never nested here, but documented anyway):
     cache_cond  ->  queue_lock  ->  metrics_lock
 """
+
+import threading
+
+from broken_server import _race_window, fake_embed
