@@ -80,3 +80,27 @@ class SingleThreadedLRUTests(unittest.TestCase):
             self.assertLessEqual(len(c), 5)
         self.assertEqual(c.keys_mru_to_lru(), [99, 98, 97, 96, 95])
         self.assertTrue(c.verify_integrity())
+
+    def test_get_or_compute_both_modes(self):
+        for mode in ("coarse", "scoped"):
+            c = ThreadSafeLRUCache(2, embed_fn=lambda k: k * 2, mode=mode)
+            self.assertEqual(c.get_or_compute(3), (6, False))
+            self.assertEqual(c.get_or_compute(3), (6, True))
+            self.assertEqual(c.embed_calls, 1)
+
+    def test_embed_error_releases_inflight(self):
+        def bad(_):
+            raise RuntimeError("model down")
+        c = ThreadSafeLRUCache(2, embed_fn=bad, mode="scoped")
+        with self.assertRaises(RuntimeError):
+            c.get_or_compute("k")
+        c.embed_fn = lambda k: "ok"
+        self.assertEqual(c.get_or_compute("k"), ("ok", False))  # no hang
+
+    def test_verify_integrity_detects_corruption(self):
+        c = ThreadSafeLRUCache(3)
+        for k in "abc":
+            c.put(k, k)
+        c._head.next.next.prev = _Node("intruder")      # break a back-pointer
+        with self.assertRaises(CacheCorruptionError):
+            c.verify_integrity()
