@@ -56,3 +56,15 @@ Workload: 32 closed-loop clients × 40 requests, 70% hot prompts, bursty. `embed
 Scoped locking gives **+59% throughput** (554 → 882 req/s), **−41% average latency** (55 → 33 ms) and **−47% p95** (82 → 43 ms).
 
 Why: about 30% of requests miss, so coarse mode holds `cache_lock` for 5 ms per miss. At ~550 req/s that is ~165 misses/s × 5 ms ≈ 0.83 s of lock time every second, so the cache lock is ~83% busy and becomes the bottleneck. Every request queues behind it, **cache hits included**, even though a hit needs only microseconds. Requests then reach the batch queue one at a time, so batches stay small (mean 4.1 of 8, utilization 0.51) and the GPU's fixed 20 ms cost is spread over fewer items. Scoped mode releases the lock during `embed()`: misses compute in parallel, hits never wait, batches fill up (6.7 of 8), and the tail latency halves.
+
+### Comparison 2: unbatched vs dynamically batched (scoped)
+
+Batching gives **4.7× throughput** (188 → 882 req/s) and **5× lower latency** (167 → 33 ms).
+
+Why: unbatched, each forward pass costs 21 ms for one request, so 4 workers can serve at most 4 / 0.021 ≈ 190 req/s. We measured 188, so the workers are saturated. With batch 8, one pass costs 28 ms for up to 8 requests, a ceiling of 4 × 8 / 0.028 ≈ 1140 req/s; we reach 882 (77% of it). Latency follows Little's law (L = λ·W): with 32 clients always waiting, W ≈ 32 / throughput, so 32 / 188 ≈ 170 ms and 32 / 882 ≈ 36 ms, which matches the measurements.
+
+### Other observations
+
+* **With batch 1, coarse and scoped are identical (188 req/s).** The inference workers are the bottleneck, so the cache lock is not on the critical path. A locking optimization only pays off where the lock is the bottleneck.
+* **Hit rate is ~0.7 everywhere** because it is set by the workload (70% hot prompts), not by the locking strategy. Correctness is the same in every configuration; only performance changes.
+* **Utilization is 0.84, not 1.0**, because the 5 ms batch timeout sends partial batches during bursts and idle gaps, trading a little GPU efficiency for lower latency. Clients are also closed-loop, so at most 32 requests exist at once for 4 workers.
