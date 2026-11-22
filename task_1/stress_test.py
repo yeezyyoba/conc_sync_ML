@@ -89,3 +89,15 @@ def run_trial(router_cls, n_clients, reqs_per_client, n_workers, seed):
                 time.sleep(0.0005)
             else:
                 idle_after_done = 0
+
+    clients = [threading.Thread(target=client, args=(c,)) for c in range(n_clients)]
+    workers = [threading.Thread(target=worker) for _ in range(n_workers)]
+    t0 = time.perf_counter()
+    for t in clients + workers:
+        t.start()
+    for t in clients:
+        t.join()
+    clients_done.set()
+    for t in workers:
+        t.join()
+    elapsed = time.perf_counter() - t0
