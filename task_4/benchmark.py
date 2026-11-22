@@ -72,3 +72,45 @@ def main():
         med["throughput_spread"] = [round(x["throughput_rps"], 1) for x in runs]
         med["all_clean"] = all(x["clean"] for x in runs)
         rows[f"{cache_mode}/b{max_batch}"] = med
+
+    def line(key, label):
+        r = rows[key]
+        return (f"| {label} | {r['throughput_rps']:.1f} | {r['latency_avg_ms']:.1f} | "
+                f"{r['latency_p95_ms']:.1f} | {r['cache_hit_rate']:.2f} | "
+                f"{r['mean_batch_size']:.2f} / {r['batch_utilization']:.2f} | "
+                f"{'yes' if r['all_clean'] else 'NO'} |")
+
+    header = ("| Configuration | Throughput (req/s) | Avg latency (ms) | p95 latency (ms) | "
+              "Cache hit rate | Mean batch / utilization | Clean (no lost) |\n"
+              "|---|---|---|---|---|---|---|")
+    md = [
+        "# Task 4 benchmark results",
+        "",
+        f"Workload: {WORKLOAD['n_clients']} closed-loop clients x {WORKLOAD['n_requests']} requests, "
+        f"{int(WORKLOAD['hot_ratio'] * 100)}% hot prompts, bursty arrivals. "
+        f"embed() {PIPELINE['embed_s'] * 1000:.0f} ms, forward pass "
+        f"{PIPELINE['forward_base_s'] * 1000:.0f} ms + {PIPELINE['forward_per_item_s'] * 1000:.0f} ms/item, "
+        f"{PIPELINE['n_workers']} workers, batch timeout {PIPELINE['batch_timeout_s'] * 1000:.0f} ms. "
+        f"Median of {args.repeats} runs.",
+        "",
+        "## Comparison 1: coarse vs scoped locking on the LRU cache (batch = 8)",
+        "", header, line("coarse/b8", "Coarse lock"), line("scoped/b8", "Scoped lock"), "",
+        "## Comparison 2: unbatched vs dynamically batched (scoped cache)",
+        "", header, line("scoped/b1", "Unbatched (max_batch_size=1)"),
+        line("scoped/b8", "Batched (max_batch_size=8)"), "",
+        "## Full grid",
+        "", header,
+        line("coarse/b1", "coarse / batch 1"), line("coarse/b8", "coarse / batch 8"),
+        line("scoped/b1", "scoped / batch 1"), line("scoped/b8", "scoped / batch 8"), "",
+        "Throughput of each repeat (sorted): " +
+        "; ".join(f"{k}: {v['throughput_spread']}" for k, v in rows.items()),
+    ]
+    os.makedirs(RESULTS, exist_ok=True)
+    with open(os.path.join(RESULTS, "benchmark_results.md"), "w", encoding="utf-8") as f:
+        f.write("\n".join(md) + "\n")
+    slim = {k: {kk: (round(vv, 3) if isinstance(vv, float) else vv) for kk, vv in v.items()}
+            for k, v in rows.items()}
+    with open(os.path.join(RESULTS, "benchmark_results.json"), "w", encoding="utf-8") as f:
+        json.dump(slim, f, indent=2)
+    print("\n" + "\n".join(md))
+    make_chart(rows)
