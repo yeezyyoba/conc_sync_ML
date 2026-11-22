@@ -185,3 +185,13 @@ def main():
         say(f"workers        : accepted {r['accepted_into_queue']}, processed twice "
             f"{r['items_processed_twice']}, lost {r['items_lost_never_processed']}, "
             f"IndexErrors {r['worker_index_errors']}")
+
+    say("\n=== Summary: symptom -> unsynchronized code line (broken_server.py) ===")
+    say(f"{'bug':<6} {'symptom':<42} {'lines':<12} {'per-trial counts'}")
+    all_clean = True
+    for tag, label, key in CHECKS:
+        counts = [r[key] for r in results]
+        all_clean &= all(c == 0 for c in counts)
+        say(f"{tag:<6} {label:<42} {str(lines.get(tag, [])):<12} {counts}")
+    say("\nRESULT: " + ("all invariants hold (no races observed)" if all_clean
+                       else "races reproduced - see counts above"))
