@@ -45,3 +45,14 @@ import time
 
 class QueueShutdown(Exception):
     """Raised by put() when the queue has been shut down."""
+
+
+class DynamicBatchQueue:
+    def __init__(self, capacity, lock=None):
+        if capacity < 1:
+            raise ValueError("capacity must be >= 1")
+        self.capacity = capacity
+        self._buf = [None] * capacity
+        self._head = 0
+        self._count = 0
+        self._shutdown = False
