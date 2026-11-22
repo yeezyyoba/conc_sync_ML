@@ -149,3 +149,33 @@ def make_embed(embed_s):
         time.sleep(embed_s)                       # simulated embedding model
         return (len(prompt), sum(map(ord, prompt)) % 9973)
     return embed
+
+
+class Router:
+    """Runs on the client's own thread: cache lookup, then enqueue."""
+
+    def __init__(self, cache, queue, metrics):
+        self.cache = cache
+        self.queue = queue
+        self.metrics = metrics
+        self._closing = False
+
+    def close(self):
+        self._closing = True
+
+    def submit(self, prompt):
+        rid = self.metrics.on_accept()
+        t0 = time.perf_counter()
+        if self._closing:                          # fast reject at the gate
+            self.metrics.on_reject()
+            raise RequestRejected(f"request {rid}: pipeline shutting down")
+        # Step 1: cache (cache_lock is taken and RELEASED inside the cache).
+        embedding, hit = self.cache.get_or_compute(prompt)
+        req = Request(rid, prompt, embedding, hit, t0)
+        # Step 2: queue (queue_lock only; no other lock is held here).
+        try:
+            self.queue.put(req)
+        except QueueShutdown:
+            self.metrics.on_reject()
+            raise RequestRejected(f"request {rid}: queue shut down") from None
+        return req.slot
