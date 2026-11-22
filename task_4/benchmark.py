@@ -50,3 +50,25 @@ def run_config(cache_mode, max_batch, seed):
     r = p.report(c["wall_s"])
     r["clean"] = clean and not c["hung_clients"] and r["completed"] == r["accepted"]
     return r
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--repeats", type=int, default=3)
+    args = ap.parse_args()
+
+    rows = {}
+    for cache_mode, max_batch in CONFIGS:
+        runs = []
+        for rep in range(args.repeats):
+            r = run_config(cache_mode, max_batch, seed=500 + rep)   # same seeds per config
+            runs.append(r)
+            print(f"{cache_mode:<6} batch={max_batch}  rep {rep + 1}: "
+                  f"{r['throughput_rps']:7.1f} req/s  avg {r['latency_avg_ms']:6.1f} ms  "
+                  f"p95 {r['latency_p95_ms']:6.1f} ms  hit {r['cache_hit_rate']:.2f}  "
+                  f"util {r['batch_utilization']:.2f}")
+        runs.sort(key=lambda x: x["throughput_rps"])
+        med = runs[len(runs) // 2]
+        med["throughput_spread"] = [round(x["throughput_rps"], 1) for x in runs]
+        med["all_clean"] = all(x["clean"] for x in runs)
+        rows[f"{cache_mode}/b{max_batch}"] = med
