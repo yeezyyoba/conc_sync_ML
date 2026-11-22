@@ -58,3 +58,25 @@ class SingleThreadedLRUTests(unittest.TestCase):
         c.put("a", 99)
         self.assertEqual(len(c), 1)
         self.assertEqual(c.get("a"), 99)
+
+    def test_capacity_one(self):
+        c = ThreadSafeLRUCache(1)
+        c.put("a", 1)
+        c.put("b", 2)
+        self.assertEqual(len(c), 1)
+        self.assertIsNone(c.get("a"))
+        self.assertTrue(c.verify_integrity())
+
+    def test_invalid_arguments(self):
+        with self.assertRaises(ValueError):
+            ThreadSafeLRUCache(0)
+        with self.assertRaises(ValueError):
+            ThreadSafeLRUCache(2, mode="medium")
+
+    def test_size_never_exceeds_capacity(self):
+        c = ThreadSafeLRUCache(5)
+        for i in range(100):
+            c.put(i, i)
+            self.assertLessEqual(len(c), 5)
+        self.assertEqual(c.keys_mru_to_lru(), [99, 98, 97, 96, 95])
+        self.assertTrue(c.verify_integrity())
