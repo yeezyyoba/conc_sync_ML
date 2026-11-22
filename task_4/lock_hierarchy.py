@@ -38,3 +38,10 @@ CACHE_LOCK = 10
 QUEUE_LOCK = 20
 METRICS_LOCK = 30
 RESULT_LOCK = 40
+
+HIERARCHY = [
+    (CACHE_LOCK, "cache_lock", "LRU embedding cache (map + doubly linked list)"),
+    (QUEUE_LOCK, "queue_lock", "DynamicBatchQueue ring buffer + not_full/not_empty"),
+    (METRICS_LOCK, "metrics_lock", "pipeline counters, latencies, batch sizes"),
+    (RESULT_LOCK, "result_lock", "per-request result slot (client wake-up)"),
+]
