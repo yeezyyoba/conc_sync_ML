@@ -60,3 +60,15 @@ class DynamicBatchQueue:
         self._lock = lock if lock is not None else threading.Lock()
         self._not_full = threading.Condition(self._lock)
         self._not_empty = threading.Condition(self._lock)
+
+        # Statistics (all updated under the lock)
+        self.total_put = 0
+        self.total_got = 0
+        self.batches = 0
+        self.rejected_puts = 0
+        self.max_size_seen = 0
+        self.producer_waits = 0      # times a producer had to block (backpressure)
+        self.consumer_wakeups = 0    # times a worker returned from wait()
+        self.full_batches = 0
+        self.timeout_batches = 0
+        self.drain_batches = 0
