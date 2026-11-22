@@ -1,0 +1,42 @@
+Task 4 stress test - full pipeline under heavy load
+Lock hierarchy (acquire only in increasing rank; scopes kept disjoint):
+  rank 10  cache_lock    LRU embedding cache (map + doubly linked list)
+  rank 20  queue_lock    DynamicBatchQueue ring buffer + not_full/not_empty
+  rank 30  metrics_lock  pipeline counters, latencies, batch sizes
+  rank 40  result_lock   per-request result slot (client wake-up)
+Load: 36 clients x 60 requests, 60% hot prompts, bursty, 4 workers, queue capacity 32, cache capacity 64
+
+[PASS] cache=coarse batch=1  full run + drain
+    accepted  2160 = completed  2160 + rejected_on_shutdown     0   (lost 0)
+    wall 11.47s  hit rate 0.57  mean batch 1.00  queue max 32/32  duplicates 0
+
+[PASS] cache=coarse batch=1  mid-run shutdown @0.6s
+    accepted  2160 = completed   144 + rejected_on_shutdown  2016   (lost 0)
+    wall 0.85s  hit rate 0.36  mean batch 1.00  queue max 32/32  duplicates 0
+
+[PASS] cache=coarse batch=8  full run + drain
+    accepted  2160 = completed  2160 + rejected_on_shutdown     0   (lost 0)
+    wall 5.28s  hit rate 0.55  mean batch 2.98  queue max 15/32  duplicates 0
+
+[PASS] cache=coarse batch=8  mid-run shutdown @0.6s
+    accepted  2160 = completed   207 + rejected_on_shutdown  1953   (lost 0)
+    wall 0.72s  hit rate 0.47  mean batch 2.44  queue max 14/32  duplicates 0
+
+[PASS] cache=scoped batch=1  full run + drain
+    accepted  2160 = completed  2160 + rejected_on_shutdown     0   (lost 0)
+    wall 11.49s  hit rate 0.58  mean batch 1.00  queue max 32/32  duplicates 0
+
+[PASS] cache=scoped batch=1  mid-run shutdown @0.6s
+    accepted  2160 = completed   144 + rejected_on_shutdown  2016   (lost 0)
+    wall 0.87s  hit rate 0.46  mean batch 1.00  queue max 32/32  duplicates 0
+
+[PASS] cache=scoped batch=8  full run + drain
+    accepted  2160 = completed  2160 + rejected_on_shutdown     0   (lost 0)
+    wall 2.21s  hit rate 0.60  mean batch 7.45  queue max 21/32  duplicates 0
+
+[PASS] cache=scoped batch=8  mid-run shutdown @0.6s
+    accepted  2160 = completed   614 + rejected_on_shutdown  1546   (lost 0)
+    wall 0.72s  hit rate 0.53  mean batch 7.40  queue max 17/32  duplicates 0
+
+lock-order violations detected by RankedLock: 0
+OVERALL: ALL RUNS PASSED - no deadlocks, no races, no lost requests
