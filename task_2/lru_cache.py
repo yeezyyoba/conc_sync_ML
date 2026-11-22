@@ -82,3 +82,11 @@ class ThreadSafeLRUCache:
         self.misses = 0
         self.evictions = 0
         self.embed_calls = 0
+
+    # ------------------------------------------------------------------ #
+    # Linked-list primitives (CALLER MUST HOLD self._lock)
+    # ------------------------------------------------------------------ #
+    def _unlink(self, node):
+        node.prev.next = node.next
+        node.next.prev = node.prev
+        node.prev = node.next = None
