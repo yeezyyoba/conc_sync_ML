@@ -42,3 +42,8 @@ class BrokenInferenceRouter:
         self.cache = {}                 # shared, unprotected
         self.queue = []                 # shared, unprotected
         self.queue_capacity = queue_capacity
+
+        # Telemetry counters (shared, unprotected)
+        self.total_requests = 0
+        self.cache_hits = 0
+        self.total_tokens = 0
