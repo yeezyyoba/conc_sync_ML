@@ -8,3 +8,11 @@ Each client thread sends `n_requests` prompts:
     * bursty arrivals: a burst of back-to-back requests, then a short pause
 Each client is closed-loop: it waits for its answer before sending the next.
 """
+
+import random
+import threading
+import time
+
+from pipeline import RequestRejected
+
+HOT_PROMPTS = [f"hot prompt #{i}: summarize the ethiopian fintech report" for i in range(20)]
