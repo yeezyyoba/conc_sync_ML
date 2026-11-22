@@ -98,3 +98,19 @@ class RankedLock:
             stack.remove(self)
         self._owner = None
         self._lock.release()
+
+    def locked(self):
+        return self._lock.locked()
+
+    def _is_owned(self):             # used by threading.Condition
+        return self._owner == threading.get_ident()
+
+    def __enter__(self):
+        self.acquire()
+        return self
+
+    def __exit__(self, *exc):
+        self.release()
+
+    def __repr__(self):
+        return f"<RankedLock {self.name} rank={self.rank}>"
