@@ -39,3 +39,25 @@ def run_load(n_producers=16, items_each=150, n_workers=4, capacity=32,
     accepted, rejected, consumed, batch_sizes = [], [], [], []
     attempts = [0]
     start = threading.Barrier(n_producers + n_workers)
+
+    def producer(pid):
+        rng = random.Random(seed * 100 + pid)
+        start.wait()
+        for i in range(items_each):
+            if rng.random() < 0.1:                     # occasional idle gap
+                time.sleep(rng.uniform(0.005, 0.02))
+            item = (pid, i)
+            with lock:
+                attempts[0] += 1
+            try:
+                q.put(item)
+                with lock:
+                    accepted.append(item)
+            except QueueShutdown:
+                with lock:
+                    rejected.append(item)
+                    # count the rest of this producer's items as rejected too
+                    remaining = items_each - i - 1
+                    attempts[0] += remaining
+                    rejected.extend((pid, j) for j in range(i + 1, items_each))
+                return
