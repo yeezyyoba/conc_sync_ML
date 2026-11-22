@@ -114,3 +114,35 @@ def main():
         json.dump(slim, f, indent=2)
     print("\n" + "\n".join(md))
     make_chart(rows)
+
+
+def make_chart(rows):
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+    except ImportError:
+        print("matplotlib not installed - skipping chart")
+        return
+    keys = ["coarse/b1", "coarse/b8", "scoped/b1", "scoped/b8"]
+    labels = ["coarse\nbatch 1", "coarse\nbatch 8", "scoped\nbatch 1", "scoped\nbatch 8"]
+    fig, axes = plt.subplots(1, 3, figsize=(12, 3.8))
+    panels = [("throughput_rps", "Throughput (req/s)  higher is better"),
+              ("latency_avg_ms", "Avg latency (ms)  lower is better"),
+              ("latency_p95_ms", "p95 latency (ms)  lower is better")]
+    for ax, (metric, title) in zip(axes, panels):
+        vals = [rows[k][metric] for k in keys]
+        bars = ax.bar(labels, vals, color=["#9aa5b1", "#9aa5b1", "#3b6fd8", "#3b6fd8"])
+        ax.set_title(title, fontsize=10)
+        ax.spines[["top", "right"]].set_visible(False)
+        for b, v in zip(bars, vals):
+            ax.annotate(f"{v:.0f}", (b.get_x() + b.get_width() / 2, v), ha="center",
+                        va="bottom", fontsize=9)
+    fig.tight_layout()
+    path = os.path.join(RESULTS, "benchmark_chart.png")
+    fig.savefig(path, dpi=150)
+    print(f"chart saved to {path}")
+
+
+if __name__ == "__main__":
+    main()
