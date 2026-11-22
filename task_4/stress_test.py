@@ -48,3 +48,23 @@ def one_run(cache_mode, max_batch, shutdown_at, seed):
         c["shutdown_clean"] = p.shutdown()
     faulthandler.cancel_dump_traceback_later()
     r = p.report(c["wall_s"])
+
+    integrity_ok = True
+    try:
+        p.cache.verify_integrity()
+    except AssertionError as exc:
+        integrity_ok = False
+        say(f"    integrity error: {exc}")
+
+    checks = {
+        "no deadlock / hung threads": not c["hung_clients"] and c["shutdown_clean"],
+        "accepted == completed + rejected_on_shutdown":
+            r["accepted"] == r["completed"] + r["rejected_on_shutdown"],
+        "client view == server view":
+            c["ok"] == r["completed"] and c["rejected"] == r["rejected_on_shutdown"],
+        "no timeouts / failures": c["timeouts"] == 0 and r["failed"] == 0 and c["errors"] == 0,
+        "no duplicate completions": r["duplicate_completions"] == 0,
+        "cache integrity + size <= capacity": integrity_ok and len(p.cache) <= p.cache.capacity,
+        "queue size <= capacity": r["queue_max_size_seen"] <= r["queue_capacity"],
+    }
+    return r, c, checks
