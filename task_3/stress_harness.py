@@ -15,3 +15,18 @@ Every thread is joined with a timeout: a thread still alive = hang/deadlock.
 
 Run:  python stress_harness.py      (report -> results/stress_report.txt)
 """
+
+import os
+import random
+import threading
+import time
+
+from batch_queue import DynamicBatchQueue, QueueShutdown
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+out = []
+
+
+def say(s=""):
+    print(s)
+    out.append(s)
