@@ -86,3 +86,29 @@ def _run_iterations(router_fn, worker_fn, iterations=2000, threads_each=4):
         t.join(timeout=20)
     hung = sum(t.is_alive() for t in ts)
     return hung, time.perf_counter() - t0
+
+
+def part2_ordering():
+    say("\nPART 2 - global order: everyone takes cache_lock, THEN queue_lock")
+    cache_lock, queue_lock = threading.Lock(), threading.Lock()
+    shared = {"cache_writes": 0, "queue_ops": 0}
+
+    def router(n):
+        for _ in range(n):
+            with cache_lock:
+                with queue_lock:
+                    shared["cache_writes"] += 1
+                    shared["queue_ops"] += 1
+
+    def worker(n):
+        for _ in range(n):
+            with cache_lock:                     # same order as router
+                with queue_lock:
+                    shared["queue_ops"] += 1
+                    shared["cache_writes"] += 1
+
+    hung, secs = _run_iterations(router, worker)
+    say(f"  8 threads x 2000 iterations: hung threads = {hung}, time {secs:.2f}s")
+    say(f"  counters: cache_writes={shared['cache_writes']} queue_ops={shared['queue_ops']} "
+        f"(expected 16000 each)")
+    return hung == 0 and shared["cache_writes"] == 16000
