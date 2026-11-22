@@ -65,3 +65,8 @@ class ThreadSafeLRUCache:
         self.embed_fn = embed_fn
         self.mode = mode
         self.single_flight = single_flight and mode == "scoped"
+
+        # One lock protects map + list + counters. The Condition shares that
+        # lock and is used only by single-flight waiters.
+        self._lock = lock if lock is not None else threading.Lock()
+        self._cond = threading.Condition(self._lock)
