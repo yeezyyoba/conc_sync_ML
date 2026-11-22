@@ -38,3 +38,7 @@ No functools.lru_cache, no collections.OrderedDict - built from scratch.
 """
 
 import threading
+
+
+class CacheCorruptionError(AssertionError):
+    """Raised by verify_integrity() when an invariant is broken."""
