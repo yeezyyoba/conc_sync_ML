@@ -55,3 +55,18 @@ def run_clients(pipeline, n_clients=32, n_requests=40, hot_ratio=0.7, seed=1,
             if left_in_burst == 0:                    # end of burst: idle a bit
                 time.sleep(rng.uniform(*pause_s))
                 left_in_burst = rng.randint(*burst)
+
+    threads = [threading.Thread(target=one_client, args=(c,), name=f"client-{c}", daemon=True)
+               for c in range(n_clients)]
+    for t in threads:
+        t.start()
+    t0 = time.perf_counter()
+    start.wait()
+    if shutdown_at is not None:
+        time.sleep(shutdown_at)
+        client["shutdown_clean"] = pipeline.shutdown()
+    for t in threads:
+        t.join(result_timeout + 30)
+    client["wall_s"] = time.perf_counter() - t0
+    client["hung_clients"] = [t.name for t in threads if t.is_alive()]
+    return client
