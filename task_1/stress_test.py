@@ -41,3 +41,13 @@ PROMPTS = [
     "describe a deadlock in one sentence",
     "rank these search results",
 ]
+
+
+def bug_line_map(path=os.path.join(HERE, "broken_server.py")):
+    """Return {'BUG-1': [line numbers], ...} by scanning the source markers."""
+    lines = {}
+    with open(path, encoding="utf-8") as f:
+        for no, text in enumerate(f, start=1):
+            for tag in re.findall(r"\[(BUG-\d+)\]", text):
+                lines.setdefault(tag, []).append(no)
+    return lines
