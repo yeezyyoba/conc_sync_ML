@@ -29,3 +29,48 @@ def say(s=""):
     with _print_lock:
         print(s)
         out.append(s)
+
+
+def part1_deadlock():
+    say("PART 1 - opposite lock order (router: cache->queue, worker: queue->cache)")
+    cache_lock, queue_lock = threading.Lock(), threading.Lock()
+    both_hold_first = threading.Barrier(2)       # make the bad interleaving certain
+    both_decided = threading.Barrier(2)          # nobody releases until both gave up
+    status = {}
+
+    def router():
+        with cache_lock:
+            say("  router : holds cache_lock, wants queue_lock")
+            both_hold_first.wait()
+            if queue_lock.acquire(timeout=2.0):  # timeout only so the demo can end
+                queue_lock.release()
+                status["router"] = "finished"
+            else:
+                status["router"] = "STUCK waiting for queue_lock (held by worker)"
+            both_decided.wait()
+
+    def worker():
+        with queue_lock:
+            say("  worker : holds queue_lock, wants cache_lock")
+            both_hold_first.wait()
+            if cache_lock.acquire(timeout=2.0):
+                cache_lock.release()
+                status["worker"] = "finished"
+            else:
+                status["worker"] = "STUCK waiting for cache_lock (held by router)"
+            both_decided.wait()
+
+    t0 = time.perf_counter()
+    ts = [threading.Thread(target=router), threading.Thread(target=worker)]
+    for t in ts:
+        t.start()
+    for t in ts:
+        t.join()
+    for who in ("router", "worker"):
+        say(f"  {who:<7}: {status[who]}")
+    deadlocked = all("STUCK" in v for v in status.values())
+    say(f"  -> {'DEADLOCK: circular wait, neither thread could ever proceed' if deadlocked else 'no deadlock this time'}"
+        f" (gave up after {time.perf_counter() - t0:.1f}s)")
+    say("  Coffman conditions present: mutual exclusion, hold-and-wait, "
+        "no preemption, circular wait")
+    return deadlocked
