@@ -36,3 +36,5 @@ Locking modes
 
 No functools.lru_cache, no collections.OrderedDict - built from scratch.
 """
+
+import threading
