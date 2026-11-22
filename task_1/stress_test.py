@@ -75,3 +75,17 @@ def run_trial(router_cls, n_clients, reqs_per_client, n_workers, seed):
         with book_lock:
             accepted_ids.extend(mine)
             expected_tokens[0] += toks
+
+    def worker():
+        start_gate.wait()
+        idle_after_done = 0
+        while True:
+            did = router.worker_step()
+            if not did:
+                if clients_done.is_set():
+                    idle_after_done += 1
+                    if idle_after_done > 50:   # queue stayed empty: finished
+                        return
+                time.sleep(0.0005)
+            else:
+                idle_after_done = 0
