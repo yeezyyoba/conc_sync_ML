@@ -20,3 +20,7 @@ worst possible moment more often, so the bug shows up on every run.
 
 DO NOT use this design. See fixed_server.py for the corrected version.
 """
+
+import random
+import threading
+import time
