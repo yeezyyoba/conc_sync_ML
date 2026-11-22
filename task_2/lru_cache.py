@@ -52,3 +52,16 @@ class _Node:
         self.value = value
         self.prev = None
         self.next = None
+
+
+class ThreadSafeLRUCache:
+    def __init__(self, capacity, embed_fn=None, mode="scoped",
+                 single_flight=True, lock=None):
+        if capacity < 1:
+            raise ValueError("capacity must be >= 1")
+        if mode not in ("coarse", "scoped"):
+            raise ValueError("mode must be 'coarse' or 'scoped'")
+        self.capacity = capacity
+        self.embed_fn = embed_fn
+        self.mode = mode
+        self.single_flight = single_flight and mode == "scoped"
