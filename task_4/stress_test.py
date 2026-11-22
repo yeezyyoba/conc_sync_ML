@@ -34,3 +34,17 @@ out = []
 def say(s=""):
     print(s)
     out.append(s)
+
+
+def one_run(cache_mode, max_batch, shutdown_at, seed):
+    p = InferencePipeline(cache_mode=cache_mode, max_batch_size=max_batch,
+                          batch_timeout_s=0.005, n_workers=4, queue_capacity=32,
+                          cache_capacity=64)
+    # Watchdog: if anything hangs for 90 s, dump every thread's stack and exit.
+    faulthandler.dump_traceback_later(90, exit=True)
+    c = run_clients(p, n_clients=36, n_requests=60, hot_ratio=0.6, seed=seed,
+                    shutdown_at=shutdown_at)
+    if shutdown_at is None:
+        c["shutdown_clean"] = p.shutdown()
+    faulthandler.cancel_dump_traceback_later()
+    r = p.report(c["wall_s"])
