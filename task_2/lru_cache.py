@@ -193,3 +193,18 @@ class ThreadSafeLRUCache:
                 self._inflight.discard(key)
                 self._cond.notify_all()
         return value, False
+
+    # ------------------------------------------------------------------ #
+    # Inspection
+    # ------------------------------------------------------------------ #
+    def __len__(self):
+        with self._lock:
+            return len(self._map)
+
+    def keys_mru_to_lru(self):
+        with self._lock:
+            out, node = [], self._head.next
+            while node is not self._tail:
+                out.append(node.key)
+                node = node.next
+            return out
