@@ -29,3 +29,9 @@ import time
 def _race_window(max_s=0.0005):
     """Sleep a random tiny amount so another thread can run in between."""
     time.sleep(random.uniform(0, max_s))
+
+
+def fake_embed(prompt):
+    """Simulated slow embedding model (e.g. a remote embedding API)."""
+    time.sleep(0.002)
+    return [float(ord(c) % 7) for c in prompt[:8]]
