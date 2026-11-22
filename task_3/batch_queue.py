@@ -56,3 +56,7 @@ class DynamicBatchQueue:
         self._head = 0
         self._count = 0
         self._shutdown = False
+
+        self._lock = lock if lock is not None else threading.Lock()
+        self._not_full = threading.Condition(self._lock)
+        self._not_empty = threading.Condition(self._lock)
