@@ -61,3 +61,13 @@ class BrokenInferenceRouter:
     # ------------------------------------------------------------------ #
     # Client side
     # ------------------------------------------------------------------ #
+    def handle_request(self, request_id, prompt):
+        # --- telemetry: read-modify-write without a lock ----------------
+        current = self.total_requests          # [BUG-1] read
+        _race_window()
+        self.total_requests = current + 1      # [BUG-1] write (lost update)
+
+        tokens = len(prompt.split())
+        current_tokens = self.total_tokens     # [BUG-2] read
+        _race_window()
+        self.total_tokens = current_tokens + tokens   # [BUG-2] write
