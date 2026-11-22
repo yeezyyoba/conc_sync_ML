@@ -48,3 +48,27 @@ class BasicTests(unittest.TestCase):
             DynamicBatchQueue(0)
         with self.assertRaises(ValueError):
             DynamicBatchQueue(2).get_batch(0, 0.1)
+
+
+class BackpressureTests(unittest.TestCase):
+    def test_put_blocks_when_full_until_space(self):
+        q = DynamicBatchQueue(2)
+        q.put("a")
+        q.put("b")
+        t, box = run_in_thread(q.put, "c")
+        time.sleep(0.1)
+        self.assertTrue(t.is_alive(), "put should block while full")
+        self.assertEqual(q.get_batch(1, 0.01), ["a"])
+        t.join(1)
+        self.assertFalse(t.is_alive())
+        self.assertTrue(box["result"])
+        self.assertEqual(q.get_batch(2, 0.01), ["b", "c"])
+        self.assertGreaterEqual(q.stats()["producer_waits"], 1)
+
+    def test_put_timeout_returns_false(self):
+        q = DynamicBatchQueue(1)
+        q.put(1)
+        t0 = time.monotonic()
+        self.assertFalse(q.put(2, timeout=0.1))
+        self.assertGreaterEqual(time.monotonic() - t0, 0.09)
+        self.assertEqual(len(q), 1)
