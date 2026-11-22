@@ -162,3 +162,42 @@ class ShutdownTests(unittest.TestCase):
         self.assertEqual(q.get_batch(4, 1.0), [0, 1, 2, 3])
         self.assertEqual(q.get_batch(4, 1.0), [4, 5, 6])
         self.assertEqual(q.get_batch(4, 1.0), [])
+
+
+class ConcurrencyTests(unittest.TestCase):
+    def test_no_overflow_no_loss_no_duplicates(self):
+        q = DynamicBatchQueue(8)
+        produced, consumed = [], []
+        lock = threading.Lock()
+
+        def producer(pid):
+            for i in range(200):
+                q.put((pid, i))
+                with lock:
+                    produced.append((pid, i))
+
+        def worker():
+            while True:
+                batch = q.get_batch(4, 0.005)
+                if not batch:
+                    return
+                with lock:
+                    consumed.extend(batch)
+
+        ps = [threading.Thread(target=producer, args=(p,)) for p in range(12)]
+        ws = [threading.Thread(target=worker) for _ in range(4)]
+        for t in ps + ws:
+            t.start()
+        for t in ps:
+            t.join(10)
+        q.shutdown()
+        for t in ws:
+            t.join(10)
+            self.assertFalse(t.is_alive())
+        self.assertEqual(len(consumed), 2400)
+        self.assertEqual(sorted(consumed), sorted(produced))
+        self.assertLessEqual(q.stats()["max_size_seen"], 8)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
