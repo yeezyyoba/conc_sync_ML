@@ -100,3 +100,26 @@ def run_load(n_producers=16, items_each=150, n_workers=4, capacity=32,
         "mean_batch": sum(batch_sizes) / len(batch_sizes) if batch_sizes else 0,
         "stats": s,
     }
+
+
+def report(name, r, capacity=32):
+    s = r["stats"]
+    say(f"\n=== {name} ===")
+    say(f"wall {r['wall_s']:.2f}s  cpu {r['cpu_s']:.2f}s  hung threads: {r['hung_threads'] or 'none'}")
+    say(f"attempts {r['attempts']}  accepted {r['accepted']}  rejected_on_shutdown {r['rejected']}  "
+        f"consumed {r['consumed']}")
+    say(f"lost {r['lost']}  duplicates {r['duplicates']}  max_size_seen {s['max_size_seen']} / "
+        f"capacity {capacity}")
+    say(f"batches {s['batches']} (full {s['full_batches']}, timeout {s['timeout_batches']}, "
+        f"drain {s['drain_batches']})  mean batch {r['mean_batch']:.2f}")
+    say(f"producer waits (backpressure) {s['producer_waits']}  consumer wakeups {s['consumer_wakeups']}")
+    checks = {
+        "no hung threads (clean shutdown)": not r["hung_threads"],
+        "attempts == accepted + rejected": r["attempts"] == r["accepted"] + r["rejected"],
+        "accepted == consumed (nothing lost)": r["accepted"] == r["consumed"] and r["lost"] == 0,
+        "no duplicates": r["duplicates"] == 0,
+        "no capacity overflow": s["max_size_seen"] <= capacity,
+    }
+    for k, ok in checks.items():
+        say(f"  [{'PASS' if ok else 'FAIL'}] {k}")
+    return all(checks.values())
