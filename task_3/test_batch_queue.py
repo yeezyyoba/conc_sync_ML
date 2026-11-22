@@ -104,3 +104,12 @@ class BatchingTests(unittest.TestCase):
         t.join(1)
         self.assertEqual(box["result"], [0, 1, 2, 3])
         self.assertLess(box["elapsed"], 1.0)        # did not wait for 5 s deadline
+
+    def test_empty_after_deadline_waits_for_first_item(self):
+        q = DynamicBatchQueue(4)
+        t, box = run_in_thread(q.get_batch, 8, 0.05)
+        time.sleep(0.3)                            # deadline long gone, still empty
+        self.assertTrue(t.is_alive())
+        q.put("late")
+        t.join(1)
+        self.assertEqual(box["result"], ["late"])
