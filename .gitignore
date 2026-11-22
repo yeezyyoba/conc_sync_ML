@@ -1,0 +1,13 @@
+# commit kit used to build the history (not part of the project)
+.commit_kit/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
