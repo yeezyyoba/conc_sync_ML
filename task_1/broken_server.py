@@ -24,3 +24,8 @@ DO NOT use this design. See fixed_server.py for the corrected version.
 import random
 import threading
 import time
+
+
+def _race_window(max_s=0.0005):
+    """Sleep a random tiny amount so another thread can run in between."""
+    time.sleep(random.uniform(0, max_s))
