@@ -97,3 +97,7 @@ class ThreadSafeLRUCache:
         node.next = first
         self._head.next = node
         first.prev = node
+
+    def _move_to_front(self, node):
+        self._unlink(node)
+        self._push_front(node)
