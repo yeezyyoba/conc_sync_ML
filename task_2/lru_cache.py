@@ -158,3 +158,18 @@ class ThreadSafeLRUCache:
             self.embed_calls += 1
             self._insert_or_update(key, value)
             return value, False
+
+    def _get_or_compute_scoped(self, key):
+        # Phase 1 (locked, fast): look up, or claim the computation.
+        with self._lock:
+            if self.single_flight:
+                while key in self._inflight:     # while, never if
+                    self._cond.wait()
+            node = self._map.get(key)
+            if node is not None:
+                self.hits += 1
+                self._move_to_front(node)
+                return node.value, True
+            self.misses += 1
+            if self.single_flight:
+                self._inflight.add(key)
