@@ -85,3 +85,34 @@ def main():
             for shutdown_at in (None, 0.6):
                 seed += 1
                 runs.append((cache_mode, max_batch, shutdown_at, seed))
+
+    all_ok = True
+    for cache_mode, max_batch, shutdown_at, seed in runs:
+        label = (f"cache={cache_mode:<6} batch={max_batch}  "
+                 f"{'mid-run shutdown @0.6s' if shutdown_at else 'full run + drain'}")
+        r, c, checks = one_run(cache_mode, max_batch, shutdown_at, seed)
+        ok = all(checks.values())
+        all_ok &= ok
+        say(f"\n[{'PASS' if ok else 'FAIL'}] {label}")
+        say(f"    accepted {r['accepted']:>5} = completed {r['completed']:>5} + "
+            f"rejected_on_shutdown {r['rejected_on_shutdown']:>5}   "
+            f"(lost {r['accepted'] - r['completed'] - r['rejected_on_shutdown']})")
+        say(f"    wall {c['wall_s']:.2f}s  hit rate {r['cache_hit_rate']:.2f}  "
+            f"mean batch {r['mean_batch_size']:.2f}  queue max {r['queue_max_size_seen']}/"
+            f"{r['queue_capacity']}  duplicates {r['duplicate_completions']}")
+        for name, passed in checks.items():
+            if not passed:
+                say(f"    FAILED: {name}")
+
+    say(f"\nlock-order violations detected by RankedLock: {RankedLock.violations}")
+    all_ok &= RankedLock.violations == 0
+    say("OVERALL: " + ("ALL RUNS PASSED - no deadlocks, no races, no lost requests"
+                       if all_ok else "FAILURES DETECTED"))
+    os.makedirs(os.path.join(HERE, "results"), exist_ok=True)
+    with open(os.path.join(HERE, "results", "stress_report.txt"), "w", encoding="utf-8") as f:
+        f.write("\n".join(out) + "\n")
+    return 0 if all_ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
