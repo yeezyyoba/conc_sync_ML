@@ -51,3 +51,12 @@ def bug_line_map(path=os.path.join(HERE, "broken_server.py")):
             for tag in re.findall(r"\[(BUG-\d+)\]", text):
                 lines.setdefault(tag, []).append(no)
     return lines
+
+
+def run_trial(router_cls, n_clients, reqs_per_client, n_workers, seed):
+    random.seed(seed)
+    router = router_cls(queue_capacity=10)
+    accepted_ids, expected_tokens = [], [0]
+    book_lock = threading.Lock()        # protects the test's OWN bookkeeping
+    clients_done = threading.Event()
+    start_gate = threading.Barrier(n_clients + n_workers)
