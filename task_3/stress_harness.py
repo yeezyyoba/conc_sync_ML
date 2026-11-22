@@ -61,3 +61,14 @@ def run_load(n_producers=16, items_each=150, n_workers=4, capacity=32,
                     attempts[0] += remaining
                     rejected.extend((pid, j) for j in range(i + 1, items_each))
                 return
+
+    def worker():
+        start.wait()
+        while True:
+            batch = q.get_batch(max_batch, timeout_s)
+            if not batch:
+                return                                 # shut down and drained
+            time.sleep(0.002 + 0.0003 * len(batch))     # simulated forward pass
+            with lock:
+                consumed.extend(batch)
+                batch_sizes.append(len(batch))
