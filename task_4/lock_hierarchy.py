@@ -31,3 +31,10 @@ RankedLock is a drop-in Lock: it works with `with`, acquire/release, and as
 the underlying lock of threading.Condition (wait() releases and re-acquires
 it through the same checked path).
 """
+
+import threading
+
+CACHE_LOCK = 10
+QUEUE_LOCK = 20
+METRICS_LOCK = 30
+RESULT_LOCK = 40
