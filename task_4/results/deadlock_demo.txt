@@ -1,0 +1,22 @@
+PART 1 - opposite lock order (router: cache->queue, worker: queue->cache)
+  router : holds cache_lock, wants queue_lock
+  worker : holds queue_lock, wants cache_lock
+  router : STUCK waiting for queue_lock (held by worker)
+  worker : STUCK waiting for cache_lock (held by router)
+  -> DEADLOCK: circular wait, neither thread could ever proceed (gave up after 2.0s)
+  Coffman conditions present: mutual exclusion, hold-and-wait, no preemption, circular wait
+
+PART 2 - global order: everyone takes cache_lock, THEN queue_lock
+  8 threads x 2000 iterations: hung threads = 0, time 0.01s
+  counters: cache_writes=16000 queue_ops=16000 (expected 16000 each)
+
+PART 3 - disjoint scopes: release one lock before taking the next
+  8 threads x 2000 iterations: hung threads = 0, time 0.01s
+  No thread ever holds two locks -> hold-and-wait is impossible -> no cycle.
+
+PART 4 - RankedLock catches a wrong-order acquire before it can deadlock
+  cache_lock(10) -> queue_lock(20): allowed
+  queue_lock(20) -> cache_lock(10): LockOrderViolation raised
+    acquiring cache_lock(rank 10) while holding queue_lock(rank 20); locks must be taken in increasing rank order: ['cache_lock', 'queue_lock', 'metrics_lock', 'result_lock']
+
+SUMMARY: deadlock reproduced = True, ordering fix OK = True, disjoint fix OK = True, hierarchy enforced = True
