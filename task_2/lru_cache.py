@@ -173,3 +173,13 @@ class ThreadSafeLRUCache:
             self.misses += 1
             if self.single_flight:
                 self._inflight.add(key)
+
+        # Phase 2 (UNLOCKED, slow): compute the embedding.
+        try:
+            value = self.embed_fn(key)
+        except BaseException:
+            if self.single_flight:
+                with self._lock:
+                    self._inflight.discard(key)
+                    self._cond.notify_all()      # never strand the waiters
+            raise
