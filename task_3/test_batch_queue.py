@@ -113,3 +113,15 @@ class BatchingTests(unittest.TestCase):
         q.put("late")
         t.join(1)
         self.assertEqual(box["result"], ["late"])
+
+    def test_consumers_do_not_busy_spin(self):
+        q = DynamicBatchQueue(4)
+        threads = [run_in_thread(q.get_batch, 8, 0.01)[0] for _ in range(4)]
+        time.sleep(0.5)                            # idle period, nothing to do
+        wakeups = q.stats()["consumer_wakeups"]
+        # Each worker wakes once when its 10 ms deadline passes, then blocks.
+        self.assertLessEqual(wakeups, 8)
+        q.shutdown()
+        for t in threads:
+            t.join(1)
+            self.assertFalse(t.is_alive())
