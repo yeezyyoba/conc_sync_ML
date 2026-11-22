@@ -68,3 +68,20 @@ def one_run(cache_mode, max_batch, shutdown_at, seed):
         "queue size <= capacity": r["queue_max_size_seen"] <= r["queue_capacity"],
     }
     return r, c, checks
+
+
+def main():
+    say("Task 4 stress test - full pipeline under heavy load")
+    say("Lock hierarchy (acquire only in increasing rank; scopes kept disjoint):")
+    for rank, name, what in HIERARCHY:
+        say(f"  rank {rank:<3} {name:<13} {what}")
+    say("Load: 36 clients x 60 requests, 60% hot prompts, bursty, 4 workers, "
+        "queue capacity 32, cache capacity 64")
+
+    runs = []
+    seed = 100
+    for cache_mode in ("coarse", "scoped"):
+        for max_batch in (1, 8):
+            for shutdown_at in (None, 0.6):
+                seed += 1
+                runs.append((cache_mode, max_batch, shutdown_at, seed))
