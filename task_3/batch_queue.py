@@ -82,3 +82,10 @@ class DynamicBatchQueue:
         self._count += 1
         if self._count > self.max_size_seen:
             self.max_size_seen = self._count
+
+    def _dequeue(self):
+        item = self._buf[self._head]
+        self._buf[self._head] = None          # drop the reference
+        self._head = (self._head + 1) % self.capacity
+        self._count -= 1
+        return item
