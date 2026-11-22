@@ -74,3 +74,15 @@ def part1_deadlock():
     say("  Coffman conditions present: mutual exclusion, hold-and-wait, "
         "no preemption, circular wait")
     return deadlocked
+
+
+def _run_iterations(router_fn, worker_fn, iterations=2000, threads_each=4):
+    ts = ([threading.Thread(target=router_fn, args=(iterations,)) for _ in range(threads_each)] +
+          [threading.Thread(target=worker_fn, args=(iterations,)) for _ in range(threads_each)])
+    t0 = time.perf_counter()
+    for t in ts:
+        t.start()
+    for t in ts:
+        t.join(timeout=20)
+    hung = sum(t.is_alive() for t in ts)
+    return hung, time.perf_counter() - t0
