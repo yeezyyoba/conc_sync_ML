@@ -137,3 +137,11 @@ class ThreadSafeLRUCache:
     def put(self, key, value):
         with self._lock:
             self._insert_or_update(key, value)
+
+    def get_or_compute(self, key):
+        """Return (value, was_hit). On a miss, calls embed_fn(key)."""
+        if self.embed_fn is None:
+            raise ValueError("embed_fn is required for get_or_compute")
+        if self.mode == "coarse":
+            return self._get_or_compute_coarse(key)
+        return self._get_or_compute_scoped(key)
