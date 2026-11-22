@@ -107,3 +107,10 @@ class DynamicBatchQueue:
                     if remaining <= 0:
                         return False
                     self._not_full.wait(remaining)
+            if self._shutdown:
+                self.rejected_puts += 1
+                raise QueueShutdown("queue is shut down")
+            self._enqueue(item)
+            self.total_put += 1
+            self._not_empty.notify_all()          # wake waiting workers
+            return True
