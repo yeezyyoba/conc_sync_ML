@@ -154,3 +154,30 @@ def idle_cpu(kind, seconds=1.0, n_workers=4):
     for t in ws:
         t.join(5)
     return cpu, q.stats()["consumer_wakeups"]
+
+
+def main():
+    say("Task 3 stress harness - DynamicBatchQueue")
+    ok_a = report("Scenario A: steady bursty load, shutdown after producers finish",
+                  run_load())
+    ok_b = report("Scenario B: shutdown() in the middle of the run (0.25 s)",
+                  run_load(shutdown_after=0.25))
+
+    say("\n=== Scenario C: idle CPU for 1 s with 4 waiting workers ===")
+    cpu_c, wake_c = idle_cpu("condition")
+    cpu_p, _ = idle_cpu("polling")
+    say(f"Condition.wait() workers : {cpu_c * 1000:7.1f} ms CPU  ({wake_c} wakeups)")
+    say(f"naive polling workers    : {cpu_p * 1000:7.1f} ms CPU  (spinning on the lock)")
+    ok_c = cpu_c < 0.1 * max(cpu_p, 0.001) or cpu_c < 0.02
+    say(f"  [{'PASS' if ok_c else 'FAIL'}] condition-based waiting does not busy-spin")
+
+    all_ok = ok_a and ok_b and ok_c
+    say("\nOVERALL: " + ("ALL CHECKS PASSED" if all_ok else "SOME CHECKS FAILED"))
+    os.makedirs(os.path.join(HERE, "results"), exist_ok=True)
+    with open(os.path.join(HERE, "results", "stress_report.txt"), "w", encoding="utf-8") as f:
+        f.write("\n".join(out) + "\n")
+    return 0 if all_ok else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
