@@ -45,3 +45,9 @@ HIERARCHY = [
     (METRICS_LOCK, "metrics_lock", "pipeline counters, latencies, batch sizes"),
     (RESULT_LOCK, "result_lock", "per-request result slot (client wake-up)"),
 ]
+
+_held = threading.local()           # per-thread stack of held RankedLocks
+
+
+class LockOrderViolation(RuntimeError):
+    """Raised when a thread acquires locks out of hierarchy order."""
