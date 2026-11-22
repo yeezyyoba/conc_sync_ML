@@ -183,3 +183,13 @@ class ThreadSafeLRUCache:
                     self._inflight.discard(key)
                     self._cond.notify_all()      # never strand the waiters
             raise
+
+        # Phase 3 (locked, fast): re-verify and insert.
+        with self._lock:
+            self.embed_calls += 1
+            # Re-check: another thread may have inserted this key meanwhile.
+            self._insert_or_update(key, value)
+            if self.single_flight:
+                self._inflight.discard(key)
+                self._cond.notify_all()
+        return value, False
