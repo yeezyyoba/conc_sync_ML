@@ -114,3 +114,30 @@ class DynamicBatchQueue:
             self.total_put += 1
             self._not_empty.notify_all()          # wake waiting workers
             return True
+
+    # ------------------------------------------------------------------ #
+    # Consumer side
+    # ------------------------------------------------------------------ #
+    def get_batch(self, max_batch_size, timeout_s):
+        """Return a list of 1..max_batch_size items, or [] after shutdown
+        once the queue is fully drained."""
+        if max_batch_size < 1:
+            raise ValueError("max_batch_size must be >= 1")
+        deadline = time.monotonic() + timeout_s
+        with self._not_empty:
+            while True:
+                if self._count >= max_batch_size:
+                    reason = "full"
+                    break
+                if self._shutdown:
+                    reason = "drain"
+                    break
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    if self._count > 0:
+                        reason = "timeout"
+                        break
+                    self._not_empty.wait()            # deadline gone, queue empty
+                else:
+                    self._not_empty.wait(remaining)   # wait for items or deadline
+                self.consumer_wakeups += 1
