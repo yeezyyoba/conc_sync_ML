@@ -51,3 +51,21 @@ class FixedInferenceRouter:
             _race_window()                       # race window is now harmless
             self.total_requests = current + 1
             self.total_tokens += tokens
+
+        # ---- cache with single-flight (embed outside the lock) ---------
+        with self.cache_cond:
+            while prompt in self.inflight:       # someone else is computing it
+                self.cache_cond.wait()
+            hit = prompt in self.cache
+            if not hit:
+                self.inflight.add(prompt)        # we own the computation
+        if hit:
+            with self.metrics_lock:
+                self.cache_hits += 1
+        else:
+            vec = fake_embed(prompt)             # slow work, NO lock held
+            self.embed_calls.append(prompt)
+            with self.cache_cond:
+                self.cache[prompt] = vec
+                self.inflight.discard(prompt)
+                self.cache_cond.notify_all()
