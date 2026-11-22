@@ -72,3 +72,35 @@ class BackpressureTests(unittest.TestCase):
         self.assertFalse(q.put(2, timeout=0.1))
         self.assertGreaterEqual(time.monotonic() - t0, 0.09)
         self.assertEqual(len(q), 1)
+
+
+class BatchingTests(unittest.TestCase):
+    def test_full_batch_returns_immediately(self):
+        q = DynamicBatchQueue(16)
+        for i in range(10):
+            q.put(i)
+        t0 = time.monotonic()
+        self.assertEqual(q.get_batch(8, 5.0), list(range(8)))
+        self.assertLess(time.monotonic() - t0, 0.05)
+
+    def test_partial_batch_after_deadline(self):
+        q = DynamicBatchQueue(16)
+        q.put("x")
+        q.put("y")
+        t0 = time.monotonic()
+        batch = q.get_batch(8, 0.2)
+        elapsed = time.monotonic() - t0
+        self.assertEqual(batch, ["x", "y"])
+        self.assertGreaterEqual(elapsed, 0.19)
+        self.assertLess(elapsed, 0.5)
+        self.assertEqual(q.stats()["timeout_batches"], 1)
+
+    def test_batch_fills_while_waiting(self):
+        q = DynamicBatchQueue(16)
+        t, box = run_in_thread(q.get_batch, 4, 5.0)
+        for i in range(4):
+            time.sleep(0.02)
+            q.put(i)
+        t.join(1)
+        self.assertEqual(box["result"], [0, 1, 2, 3])
+        self.assertLess(box["elapsed"], 1.0)        # did not wait for 5 s deadline
