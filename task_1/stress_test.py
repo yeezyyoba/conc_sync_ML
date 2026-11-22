@@ -101,3 +101,36 @@ def run_trial(router_cls, n_clients, reqs_per_client, n_workers, seed):
     for t in workers:
         t.join()
     elapsed = time.perf_counter() - t0
+
+    total = n_clients * reqs_per_client
+    used_prompts = len(set(router.embed_calls)) or 1
+    processed_counts = Counter(router.processed)
+    duplicates = sum(c - 1 for c in processed_counts.values() if c > 1)
+    lost = len(set(accepted_ids) - set(processed_counts))
+    embed_counts = Counter(router.embed_calls)
+    misses = len(router.embed_calls)
+
+    return {
+        "elapsed_s": elapsed,
+        "expected_total_requests": total,
+        "observed_total_requests": router.total_requests,
+        "lost_request_updates": total - router.total_requests,
+        "expected_total_tokens": expected_tokens[0],
+        "observed_total_tokens": router.total_tokens,
+        "lost_token_updates": expected_tokens[0] - router.total_tokens,
+        "unique_prompts": used_prompts,
+        "embed_calls": misses,
+        "duplicate_embed_calls": misses - used_prompts,
+        "worst_prompt_embeds": max(embed_counts.values()) if embed_counts else 0,
+        "expected_cache_hits": total - misses,
+        "observed_cache_hits": router.cache_hits,
+        "lost_hit_updates": (total - misses) - router.cache_hits,
+        "queue_capacity": router.queue_capacity,
+        "max_queue_len_seen": router.max_queue_len_seen,
+        "capacity_violations": len(router.capacity_violations),
+        "accepted_into_queue": len(accepted_ids),
+        "rejected_queue_full": router.rejected,
+        "items_processed_twice": duplicates,
+        "items_lost_never_processed": lost,
+        "worker_index_errors": len(router.worker_errors),
+    }
