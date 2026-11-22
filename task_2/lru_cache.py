@@ -145,3 +145,16 @@ class ThreadSafeLRUCache:
         if self.mode == "coarse":
             return self._get_or_compute_coarse(key)
         return self._get_or_compute_scoped(key)
+
+    def _get_or_compute_coarse(self, key):
+        with self._lock:                     # held across embed() on purpose
+            node = self._map.get(key)
+            if node is not None:
+                self.hits += 1
+                self._move_to_front(node)
+                return node.value, True
+            self.misses += 1
+            value = self.embed_fn(key)       # SLOW WORK UNDER THE LOCK
+            self.embed_calls += 1
+            self._insert_or_update(key, value)
+            return value, False
