@@ -72,3 +72,13 @@ class DynamicBatchQueue:
         self.full_batches = 0
         self.timeout_batches = 0
         self.drain_batches = 0
+
+    # ------------------------------------------------------------------ #
+    # Ring buffer primitives (CALLER MUST HOLD self._lock)
+    # ------------------------------------------------------------------ #
+    def _enqueue(self, item):
+        tail = (self._head + self._count) % self.capacity
+        self._buf[tail] = item
+        self._count += 1
+        if self._count > self.max_size_seen:
+            self.max_size_seen = self._count
