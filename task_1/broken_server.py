@@ -99,3 +99,16 @@ class BrokenInferenceRouter:
     # ------------------------------------------------------------------ #
     # Worker side
     # ------------------------------------------------------------------ #
+    def worker_step(self):
+        """Take one request from the front of the list queue."""
+        if self.queue:                         # [BUG-6] CHECK not empty
+            _race_window()
+            try:
+                item = self.queue[0]           # [BUG-6] peek (two workers see same item)
+                _race_window()
+                del self.queue[0]              # [BUG-6] remove (may delete a DIFFERENT item)
+                self.processed.append(item)
+            except IndexError as exc:          # queue emptied by another worker
+                self.worker_errors.append(repr(exc))
+            return True
+        return False
