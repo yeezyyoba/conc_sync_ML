@@ -60,3 +60,18 @@ def run_trial(router_cls, n_clients, reqs_per_client, n_workers, seed):
     book_lock = threading.Lock()        # protects the test's OWN bookkeeping
     clients_done = threading.Event()
     start_gate = threading.Barrier(n_clients + n_workers)
+
+    def client(cid):
+        rng = random.Random(seed * 1000 + cid)
+        mine, toks = [], 0
+        start_gate.wait()               # everybody starts at the same instant
+        for i in range(reqs_per_client):
+            prompt = rng.choice(PROMPTS)
+            rid = f"c{cid}-r{i}"
+            toks += len(prompt.split())
+            if router.handle_request(rid, prompt):
+                mine.append(rid)
+            time.sleep(rng.uniform(0, 0.001))
+        with book_lock:
+            accepted_ids.extend(mine)
+            expected_tokens[0] += toks
