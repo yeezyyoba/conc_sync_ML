@@ -56,3 +56,26 @@ class LockOrderViolation(RuntimeError):
 def held_locks():
     """Names of the RankedLocks the current thread holds (outermost first)."""
     return [lk.name for lk in getattr(_held, "stack", [])]
+
+
+class RankedLock:
+    violations = 0                   # global counter, for the stress test report
+    _count_lock = threading.Lock()
+
+    def __init__(self, rank, name):
+        self.rank = rank
+        self.name = name
+        self._lock = threading.Lock()
+        self._owner = None
+
+    def _check(self):
+        stack = getattr(_held, "stack", None)
+        if stack:
+            top = stack[-1]
+            if self.rank <= top.rank:
+                with RankedLock._count_lock:
+                    RankedLock.violations += 1
+                raise LockOrderViolation(
+                    f"acquiring {self.name}(rank {self.rank}) while holding "
+                    f"{top.name}(rank {top.rank}); locks must be taken in "
+                    f"increasing rank order: {[n for _, n, _ in HIERARCHY]}")
