@@ -75,3 +75,21 @@ def timed_run(mode, threads=16, keys_per_thread=10, embed_s=0.005):
     cache.verify_integrity()
     hit_lat.sort()
     return wall, sum(hit_lat) / len(hit_lat), hit_lat[int(0.95 * len(hit_lat))]
+
+
+def part2():
+    say("\nPART 2 - coarse vs scoped locking (16 threads, 160 misses of 5 ms)")
+    say(f"{'mode':<8} {'wall time':>10} {'avg hit latency':>17} {'p95 hit latency':>17}")
+    for mode in ("coarse", "scoped"):
+        wall, avg, p95 = timed_run(mode)
+        say(f"{mode:<8} {wall:>9.2f}s {avg:>15.3f}ms {p95:>15.3f}ms")
+    say("coarse: every miss holds the lock for 5 ms, so even cache HITS queue behind it.")
+    say("scoped: embeds run in parallel outside the lock; hits only wait microseconds.")
+
+
+if __name__ == "__main__":
+    part1()
+    part2()
+    os.makedirs(os.path.join(HERE, "results"), exist_ok=True)
+    with open(os.path.join(HERE, "results", "demo_output.txt"), "w", encoding="utf-8") as f:
+        f.write("\n".join(out) + "\n")
