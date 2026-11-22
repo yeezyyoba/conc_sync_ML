@@ -47,3 +47,17 @@ class BrokenInferenceRouter:
         self.total_requests = 0
         self.cache_hits = 0
         self.total_tokens = 0
+
+        # Instrumentation used ONLY to detect the bugs (written by many
+        # threads; list.append is a single bytecode op so these logs are
+        # reliable enough for evidence collection).
+        self.embed_calls = []           # one entry per embed() call
+        self.max_queue_len_seen = 0
+        self.capacity_violations = []   # queue lengths seen above capacity
+        self.processed = []             # request ids processed by workers
+        self.worker_errors = []         # exceptions raised in workers
+        self.rejected = 0
+
+    # ------------------------------------------------------------------ #
+    # Client side
+    # ------------------------------------------------------------------ #
