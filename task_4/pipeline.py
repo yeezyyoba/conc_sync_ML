@@ -82,3 +82,15 @@ class ResultSlot:
             if self._error is not None:
                 raise self._error
             return self._value
+
+
+class Request:
+    __slots__ = ("rid", "prompt", "embedding", "cache_hit", "t_submit", "slot")
+
+    def __init__(self, rid, prompt, embedding, cache_hit, t_submit):
+        self.rid = rid
+        self.prompt = prompt
+        self.embedding = embedding
+        self.cache_hit = cache_hit
+        self.t_submit = t_submit
+        self.slot = ResultSlot()
