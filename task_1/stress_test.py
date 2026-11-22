@@ -167,3 +167,21 @@ def main():
     say(f"clients={args.clients}  requests/client={args.requests}  "
         f"workers={args.workers}  trials={args.trials}  queue_capacity=10")
     results = []
+    for t in range(args.trials):
+        r = run_trial(cls, args.clients, args.requests, args.workers, seed=42 + t)
+        results.append(r)
+        say(f"\n--- trial {t + 1} (seed {42 + t}, {r['elapsed_s']:.2f}s) ---")
+        say(f"total_requests : expected {r['expected_total_requests']:>6}  "
+            f"observed {r['observed_total_requests']:>6}  lost {r['lost_request_updates']}")
+        say(f"total_tokens   : expected {r['expected_total_tokens']:>6}  "
+            f"observed {r['observed_total_tokens']:>6}  lost {r['lost_token_updates']}")
+        say(f"cache_hits     : expected {r['expected_cache_hits']:>6}  "
+            f"observed {r['observed_cache_hits']:>6}  lost {r['lost_hit_updates']}")
+        say(f"embed() calls  : {r['embed_calls']} for {r['unique_prompts']} unique prompts "
+            f"-> {r['duplicate_embed_calls']} duplicates (worst prompt embedded "
+            f"{r['worst_prompt_embeds']}x)")
+        say(f"queue          : capacity {r['queue_capacity']}, max length seen "
+            f"{r['max_queue_len_seen']}, violations {r['capacity_violations']}")
+        say(f"workers        : accepted {r['accepted_into_queue']}, processed twice "
+            f"{r['items_processed_twice']}, lost {r['items_lost_never_processed']}, "
+            f"IndexErrors {r['worker_index_errors']}")
