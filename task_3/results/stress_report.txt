@@ -1,0 +1,32 @@
+Task 3 stress harness - DynamicBatchQueue
+
+=== Scenario A: steady bursty load, shutdown after producers finish ===
+wall 0.38s  cpu 0.06s  hung threads: none
+attempts 2400  accepted 2400  rejected_on_shutdown 0  consumed 2400
+lost 0  duplicates 0  max_size_seen 32 / capacity 32
+batches 301 (full 297, timeout 3, drain 1)  mean batch 7.97
+producer waits (backpressure) 1434  consumer wakeups 43
+  [PASS] no hung threads (clean shutdown)
+  [PASS] attempts == accepted + rejected
+  [PASS] accepted == consumed (nothing lost)
+  [PASS] no duplicates
+  [PASS] no capacity overflow
+
+=== Scenario B: shutdown() in the middle of the run (0.25 s) ===
+wall 0.26s  cpu 0.05s  hung threads: none
+attempts 2400  accepted 1792  rejected_on_shutdown 608  consumed 1792
+lost 0  duplicates 0  max_size_seen 32 / capacity 32
+batches 224 (full 224, timeout 0, drain 0)  mean batch 8.00
+producer waits (backpressure) 1314  consumer wakeups 1
+  [PASS] no hung threads (clean shutdown)
+  [PASS] attempts == accepted + rejected
+  [PASS] accepted == consumed (nothing lost)
+  [PASS] no duplicates
+  [PASS] no capacity overflow
+
+=== Scenario C: idle CPU for 1 s with 4 waiting workers ===
+Condition.wait() workers :     0.1 ms CPU  (8 wakeups)
+naive polling workers    :  1011.5 ms CPU  (spinning on the lock)
+  [PASS] condition-based waiting does not busy-spin
+
+OVERALL: ALL CHECKS PASSED
