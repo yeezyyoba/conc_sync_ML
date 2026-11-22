@@ -146,3 +146,24 @@ CHECKS = [
     ("BUG-6", "Items lost / never processed", "items_lost_never_processed"),
     ("BUG-6", "Worker IndexError crashes", "worker_index_errors"),
 ]
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--fixed", action="store_true", help="test the fixed router")
+    ap.add_argument("--clients", type=int, default=30)
+    ap.add_argument("--requests", type=int, default=40, help="requests per client")
+    ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--trials", type=int, default=3)
+    args = ap.parse_args()
+
+    cls = FixedInferenceRouter if args.fixed else BrokenInferenceRouter
+    name = "fixed" if args.fixed else "broken"
+    lines = bug_line_map()
+    out = []
+    say = lambda s="": (print(s), out.append(s))
+
+    say(f"=== Task 1 stress test: {name.upper()} router ===")
+    say(f"clients={args.clients}  requests/client={args.requests}  "
+        f"workers={args.workers}  trials={args.trials}  queue_capacity=10")
+    results = []
