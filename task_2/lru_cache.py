@@ -133,3 +133,7 @@ class ThreadSafeLRUCache:
             self.hits += 1
             self._move_to_front(node)
             return node.value
+
+    def put(self, key, value):
+        with self._lock:
+            self._insert_or_update(key, value)
