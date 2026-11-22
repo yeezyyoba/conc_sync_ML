@@ -41,3 +41,18 @@ python demo_lru.py         # linked-list walkthrough + quick coarse vs scoped ti
   * `verify_integrity()` checks prev/next symmetry, cycles, list length == dict size, `0 <= size <= capacity`
 * `test_lru_cache.py`: hit-heavy, miss-heavy and eviction-heavy concurrent tests with a live integrity checker
 * `results/`: test log and demo output
+
+## Task 3: Bounded dynamic inference batching queue
+
+```bash
+cd task_3
+python test_batch_queue.py   # 15 unittest cases: backpressure, batching, deadline, shutdown
+python stress_harness.py     # steady load, mid-run shutdown, idle-CPU busy-spin check
+```
+
+* `batch_queue.py`: `DynamicBatchQueue`, a ring buffer plus one `Lock` shared by two `Condition`s (`not_full`, `not_empty`)
+  * `put()` blocks in `while count >= capacity` (backpressure); after `shutdown()` it raises `QueueShutdown`
+  * `get_batch(max_batch_size, timeout_s)` returns a full batch, a partial batch after the monotonic deadline, or drains on shutdown
+  * `shutdown()` calls `notify_all()` on both conditions, drains the remaining items, and leaves no thread hanging
+* `stress_harness.py`: checks `attempts == accepted + rejected`, `accepted == consumed`, no duplicates, no overflow, no hung threads
+* `results/`: test log and stress report
