@@ -13,3 +13,19 @@ queue and then writes back to the cache (queue_lock -> cache_lock).
 
 Run:  python deadlock_demo.py      (output -> results/deadlock_demo.txt)
 """
+
+import os
+import threading
+import time
+
+from lock_hierarchy import CACHE_LOCK, QUEUE_LOCK, LockOrderViolation, RankedLock
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+out = []
+_print_lock = threading.Lock()
+
+
+def say(s=""):
+    with _print_lock:
+        print(s)
+        out.append(s)
