@@ -240,3 +240,31 @@ class InferencePipeline:
             self.metrics.on_batch(batch, time.perf_counter())   # metrics_lock only
             for r, out in zip(batch, outputs):
                 r.slot.set_result(out)                   # result_lock only
+
+    # -- reporting ------------------------------------------------------ #
+    def report(self, wall_s):
+        m = self.metrics.snapshot()
+        c = self.cache.stats()
+        q = self.queue.stats()
+        lat = sorted(m["latencies_ms"])
+        n = len(lat)
+        mean_batch = sum(m["batch_sizes"]) / len(m["batch_sizes"]) if m["batch_sizes"] else 0
+        return {
+            "accepted": m["accepted"],
+            "completed": m["completed"],
+            "rejected_on_shutdown": m["rejected_on_shutdown"],
+            "failed": m["failed"],
+            "duplicate_completions": m["duplicate_completions"],
+            "wall_s": wall_s,
+            "throughput_rps": m["completed"] / wall_s if wall_s else 0.0,
+            "latency_avg_ms": sum(lat) / n if n else 0.0,
+            "latency_p95_ms": lat[min(n - 1, int(0.95 * n))] if n else 0.0,
+            "cache_hit_rate": c["hit_rate"],
+            "cache_lookups": c["lookups"],
+            "embed_calls": c["embed_calls"],
+            "mean_batch_size": mean_batch,
+            "batch_utilization": mean_batch / self.max_batch_size,
+            "batches": len(m["batch_sizes"]),
+            "queue_max_size_seen": q["max_size_seen"],
+            "queue_capacity": q["capacity"],
+        }
