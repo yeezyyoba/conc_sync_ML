@@ -43,3 +43,11 @@ class FixedInferenceRouter:
         self.processed = []
         self.worker_errors = []
         self.rejected = 0
+
+    def handle_request(self, request_id, prompt):
+        tokens = len(prompt.split())
+        with self.metrics_lock:
+            current = self.total_requests
+            _race_window()                       # race window is now harmless
+            self.total_requests = current + 1
+            self.total_tokens += tokens
