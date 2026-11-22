@@ -1,0 +1,20 @@
+test_put_blocks_when_full_until_space (__main__.BackpressureTests.test_put_blocks_when_full_until_space) ... ok
+test_put_timeout_returns_false (__main__.BackpressureTests.test_put_timeout_returns_false) ... ok
+test_fifo_order (__main__.BasicTests.test_fifo_order) ... ok
+test_invalid_arguments (__main__.BasicTests.test_invalid_arguments) ... ok
+test_ring_buffer_wraps_around (__main__.BasicTests.test_ring_buffer_wraps_around) ... ok
+test_batch_fills_while_waiting (__main__.BatchingTests.test_batch_fills_while_waiting) ... ok
+test_consumers_do_not_busy_spin (__main__.BatchingTests.test_consumers_do_not_busy_spin) ... ok
+test_empty_after_deadline_waits_for_first_item (__main__.BatchingTests.test_empty_after_deadline_waits_for_first_item) ... ok
+test_full_batch_returns_immediately (__main__.BatchingTests.test_full_batch_returns_immediately) ... ok
+test_partial_batch_after_deadline (__main__.BatchingTests.test_partial_batch_after_deadline) ... ok
+test_no_overflow_no_loss_no_duplicates (__main__.ConcurrencyTests.test_no_overflow_no_loss_no_duplicates) ... ok
+test_put_after_shutdown_rejected (__main__.ShutdownTests.test_put_after_shutdown_rejected) ... ok
+test_shutdown_drains_remaining_items (__main__.ShutdownTests.test_shutdown_drains_remaining_items) ... ok
+test_shutdown_wakes_blocked_consumer (__main__.ShutdownTests.test_shutdown_wakes_blocked_consumer) ... ok
+test_shutdown_wakes_blocked_producer (__main__.ShutdownTests.test_shutdown_wakes_blocked_producer) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 1.435s
+
+OK
