@@ -26,3 +26,18 @@ from broken_server import BrokenInferenceRouter
 from fixed_server import FixedInferenceRouter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+
+PROMPTS = [
+    "summarize the quarterly sales report",
+    "translate hello world to amharic",
+    "classify this review as positive or negative",
+    "what is the capital of ethiopia",
+    "explain gradient descent simply",
+    "write a haiku about coffee",
+    "detect fraud in this transaction",
+    "extract entities from the news article",
+    "recommend a movie like inception",
+    "generate sql for top customers",
+    "describe a deadlock in one sentence",
+    "rank these search results",
+]
