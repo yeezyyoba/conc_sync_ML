@@ -222,3 +222,50 @@ class ThreadSafeLRUCache:
                 "evictions": self.evictions,
                 "embed_calls": self.embed_calls,
             }
+
+    def verify_integrity(self):
+        """Check every structural invariant. Raises CacheCorruptionError."""
+        with self._lock:
+            def fail(msg):
+                raise CacheCorruptionError(msg)
+
+            size = len(self._map)
+            if not (0 <= size <= self.capacity):
+                fail(f"size {size} outside [0, {self.capacity}]")
+            if self._head.prev is not None or self._tail.next is not None:
+                fail("sentinel outer pointers must be None")
+
+            # Forward walk: next/prev must mirror each other, no cycles.
+            seen, node, steps = set(), self._head, 0
+            while node is not self._tail:
+                nxt = node.next
+                if nxt is None:
+                    fail(f"broken next pointer after {node.key!r}")
+                if nxt.prev is not node:
+                    fail(f"{nxt.key!r}.prev does not point back to {node.key!r}")
+                node = nxt
+                if node is self._tail:
+                    break
+                if id(node) in seen:
+                    fail("cycle detected in linked list")
+                seen.add(id(node))
+                if self._map.get(node.key) is not node:
+                    fail(f"list node {node.key!r} not mapped to itself in dict")
+                steps += 1
+                if steps > size:
+                    fail("list longer than dict")
+            if steps != size:
+                fail(f"list length {steps} != dict size {size}")
+
+            # Backward walk must count the same number of nodes.
+            back, node = 0, self._tail.prev
+            while node is not self._head:
+                back += 1
+                if back > size:
+                    fail("backward walk longer than dict")
+                node = node.prev
+            if back != size:
+                fail(f"backward length {back} != dict size {size}")
+            if self._inflight and not self.single_flight:
+                fail("in-flight set used without single_flight")
+            return True
