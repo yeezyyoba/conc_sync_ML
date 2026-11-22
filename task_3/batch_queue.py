@@ -89,3 +89,21 @@ class DynamicBatchQueue:
         self._head = (self._head + 1) % self.capacity
         self._count -= 1
         return item
+
+    # ------------------------------------------------------------------ #
+    # Producer side
+    # ------------------------------------------------------------------ #
+    def put(self, item, timeout=None):
+        """Block while full. Returns True, or False if `timeout` expired.
+        Raises QueueShutdown if the queue is (or becomes) shut down."""
+        deadline = None if timeout is None else time.monotonic() + timeout
+        with self._not_full:
+            while self._count >= self.capacity and not self._shutdown:
+                self.producer_waits += 1
+                if deadline is None:
+                    self._not_full.wait()
+                else:
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        return False
+                    self._not_full.wait(remaining)
