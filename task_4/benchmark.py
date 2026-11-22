@@ -23,3 +23,21 @@ Run:  python benchmark.py [--repeats 3]
 Output: results/benchmark_results.md, results/benchmark_results.json,
         results/benchmark_chart.png (if matplotlib is installed)
 """
+
+import argparse
+import json
+import os
+
+from pipeline import InferencePipeline
+from workload import run_clients
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+RESULTS = os.path.join(HERE, "results")
+
+CONFIGS = [
+    ("coarse", 1), ("coarse", 8),
+    ("scoped", 1), ("scoped", 8),
+]
+WORKLOAD = dict(n_clients=32, n_requests=40, hot_ratio=0.7)
+PIPELINE = dict(n_workers=4, queue_capacity=64, cache_capacity=256, embed_s=0.005,
+                forward_base_s=0.020, forward_per_item_s=0.001, batch_timeout_s=0.005)
