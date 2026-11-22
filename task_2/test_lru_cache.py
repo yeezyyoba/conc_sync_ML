@@ -159,3 +159,28 @@ class ConcurrentLRUTests(unittest.TestCase):
         s = cache.stats()
         self.assertLessEqual(s["size"], capacity)
         return cache, s
+
+    def test_eviction_heavy_scoped(self):
+        _, s = self._hammer("scoped", capacity=16, key_space=200)
+        self.assertGreater(s["evictions"], 100)
+
+    def test_eviction_heavy_coarse(self):
+        _, s = self._hammer("coarse", capacity=16, key_space=200, ops=150)
+        self.assertGreater(s["evictions"], 50)
+
+    def test_hit_heavy_scoped(self):
+        _, s = self._hammer("scoped", capacity=64, key_space=32)
+        self.assertEqual(s["evictions"], 0)
+        # Each key is embedded at most once (some keys arrive via put() first).
+        self.assertLessEqual(s["embed_calls"], 32)
+        self.assertGreater(s["hit_rate"], 0.9)
+
+    def test_hit_heavy_coarse(self):
+        _, s = self._hammer("coarse", capacity=64, key_space=32, ops=150)
+        self.assertLessEqual(s["embed_calls"], 32)
+
+    def test_mixed_hit_miss(self):
+        for mode in ("coarse", "scoped"):
+            _, s = self._hammer(mode, capacity=32, key_space=48, ops=150)
+            self.assertGreater(s["hits"], 0)
+            self.assertGreater(s["misses"], 0)
