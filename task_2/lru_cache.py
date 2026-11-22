@@ -70,3 +70,10 @@ class ThreadSafeLRUCache:
         # lock and is used only by single-flight waiters.
         self._lock = lock if lock is not None else threading.Lock()
         self._cond = threading.Condition(self._lock)
+
+        self._map = {}
+        self._head = _Node("<HEAD>")
+        self._tail = _Node("<TAIL>")
+        self._head.next = self._tail
+        self._tail.prev = self._head
+        self._inflight = set()
