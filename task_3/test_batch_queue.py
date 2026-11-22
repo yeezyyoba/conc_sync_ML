@@ -125,3 +125,24 @@ class BatchingTests(unittest.TestCase):
         for t in threads:
             t.join(1)
             self.assertFalse(t.is_alive())
+
+
+class ShutdownTests(unittest.TestCase):
+    def test_shutdown_wakes_blocked_consumer(self):
+        q = DynamicBatchQueue(4)
+        t, box = run_in_thread(q.get_batch, 8, 10.0)
+        time.sleep(0.05)
+        q.shutdown()
+        t.join(1)
+        self.assertFalse(t.is_alive())
+        self.assertEqual(box["result"], [])
+
+    def test_shutdown_wakes_blocked_producer(self):
+        q = DynamicBatchQueue(1)
+        q.put(1)
+        t, box = run_in_thread(q.put, 2)
+        time.sleep(0.05)
+        q.shutdown()
+        t.join(1)
+        self.assertFalse(t.is_alive())
+        self.assertIsInstance(box.get("error"), QueueShutdown)
