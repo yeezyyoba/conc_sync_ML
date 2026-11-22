@@ -119,3 +119,17 @@ class ThreadSafeLRUCache:
         self._map[key] = node
         self._push_front(node)
         self._evict_if_needed()
+
+    # ------------------------------------------------------------------ #
+    # Public API
+    # ------------------------------------------------------------------ #
+    def get(self, key):
+        """Return the cached value (and mark it most-recent) or None."""
+        with self._lock:
+            node = self._map.get(key)
+            if node is None:
+                self.misses += 1
+                return None
+            self.hits += 1
+            self._move_to_front(node)
+            return node.value
