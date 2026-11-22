@@ -1,0 +1,25 @@
+test_coarse_mode_serializes_embed (__main__.ConcurrentLRUTests.test_coarse_mode_serializes_embed) ... ok
+test_eviction_heavy_coarse (__main__.ConcurrentLRUTests.test_eviction_heavy_coarse) ... ok
+test_eviction_heavy_scoped (__main__.ConcurrentLRUTests.test_eviction_heavy_scoped) ... ok
+test_hit_heavy_coarse (__main__.ConcurrentLRUTests.test_hit_heavy_coarse) ... ok
+test_hit_heavy_scoped (__main__.ConcurrentLRUTests.test_hit_heavy_scoped) ... ok
+test_mixed_hit_miss (__main__.ConcurrentLRUTests.test_mixed_hit_miss) ... ok
+test_scoped_mode_runs_embeds_in_parallel (__main__.ConcurrentLRUTests.test_scoped_mode_runs_embeds_in_parallel) ... ok
+test_single_flight_prevents_stampede (__main__.ConcurrentLRUTests.test_single_flight_prevents_stampede) ... ok
+test_without_single_flight_stampede_is_visible (__main__.ConcurrentLRUTests.test_without_single_flight_stampede_is_visible) ... ok
+test_capacity_one (__main__.SingleThreadedLRUTests.test_capacity_one) ... ok
+test_embed_error_releases_inflight (__main__.SingleThreadedLRUTests.test_embed_error_releases_inflight) ... ok
+test_evicts_least_recently_used (__main__.SingleThreadedLRUTests.test_evicts_least_recently_used) ... ok
+test_get_missing_returns_none (__main__.SingleThreadedLRUTests.test_get_missing_returns_none) ... ok
+test_get_or_compute_both_modes (__main__.SingleThreadedLRUTests.test_get_or_compute_both_modes) ... ok
+test_invalid_arguments (__main__.SingleThreadedLRUTests.test_invalid_arguments) ... ok
+test_order_mru_to_lru (__main__.SingleThreadedLRUTests.test_order_mru_to_lru) ... ok
+test_put_then_get (__main__.SingleThreadedLRUTests.test_put_then_get) ... ok
+test_size_never_exceeds_capacity (__main__.SingleThreadedLRUTests.test_size_never_exceeds_capacity) ... ok
+test_update_existing_key_does_not_grow (__main__.SingleThreadedLRUTests.test_update_existing_key_does_not_grow) ... ok
+test_verify_integrity_detects_corruption (__main__.SingleThreadedLRUTests.test_verify_integrity_detects_corruption) ... ok
+
+----------------------------------------------------------------------
+Ran 20 tests in 2.620s
+
+OK
