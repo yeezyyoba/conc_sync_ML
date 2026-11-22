@@ -208,3 +208,17 @@ class ThreadSafeLRUCache:
                 out.append(node.key)
                 node = node.next
             return out
+
+    def stats(self):
+        with self._lock:
+            lookups = self.hits + self.misses
+            return {
+                "size": len(self._map),
+                "capacity": self.capacity,
+                "hits": self.hits,
+                "misses": self.misses,
+                "lookups": lookups,
+                "hit_rate": self.hits / lookups if lookups else 0.0,
+                "evictions": self.evictions,
+                "embed_calls": self.embed_calls,
+            }
