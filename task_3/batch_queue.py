@@ -141,3 +141,19 @@ class DynamicBatchQueue:
                 else:
                     self._not_empty.wait(remaining)   # wait for items or deadline
                 self.consumer_wakeups += 1
+
+            n = min(self._count, max_batch_size)
+            batch = [self._dequeue() for _ in range(n)]
+            if batch:
+                self.total_got += n
+                self.batches += 1
+                if reason == "full":
+                    self.full_batches += 1
+                elif reason == "timeout":
+                    self.timeout_batches += 1
+                else:
+                    self.drain_batches += 1
+                self._not_full.notify_all()           # space opened up
+            if self._count >= max_batch_size or (self._shutdown and self._count):
+                self._not_empty.notify_all()          # let another worker continue
+            return batch
