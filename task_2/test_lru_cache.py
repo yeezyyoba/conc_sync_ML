@@ -104,3 +104,58 @@ class SingleThreadedLRUTests(unittest.TestCase):
         c._head.next.next.prev = _Node("intruder")      # break a back-pointer
         with self.assertRaises(CacheCorruptionError):
             c.verify_integrity()
+
+
+class ConcurrentLRUTests(unittest.TestCase):
+    def _hammer(self, mode, capacity, key_space, threads=24, ops=400):
+        cache = ThreadSafeLRUCache(capacity, embed_fn=lambda k: slow_embed(k, 0.0005),
+                                   mode=mode)
+        errors, stop = [], threading.Event()
+        wrong_values = []
+        start = threading.Barrier(threads + 1)
+
+        def client(tid):
+            rng = random.Random(tid)
+            start.wait()
+            try:
+                for _ in range(ops):
+                    k = rng.randrange(key_space)
+                    r = rng.random()
+                    if r < 0.6:
+                        v, _ = cache.get_or_compute(k)
+                        if v != f"vec({k})":
+                            wrong_values.append((k, v))
+                    elif r < 0.8:
+                        v = cache.get(k)
+                        if v is not None and v != f"vec({k})":
+                            wrong_values.append((k, v))
+                    else:
+                        cache.put(k, f"vec({k})")
+            except Exception as exc:          # pragma: no cover - should not happen
+                errors.append(exc)
+
+        def checker():
+            start.wait()
+            while not stop.is_set():
+                try:
+                    cache.verify_integrity()
+                except Exception as exc:
+                    errors.append(exc)
+                    return
+                time.sleep(0.001)
+
+        ts = [threading.Thread(target=client, args=(i,)) for i in range(threads)]
+        chk = threading.Thread(target=checker)
+        for t in ts + [chk]:
+            t.start()
+        for t in ts:
+            t.join(timeout=60)
+            self.assertFalse(t.is_alive(), "client thread hung (deadlock?)")
+        stop.set()
+        chk.join(timeout=10)
+        self.assertEqual(errors, [])
+        self.assertEqual(wrong_values, [])
+        self.assertTrue(cache.verify_integrity())
+        s = cache.stats()
+        self.assertLessEqual(s["size"], capacity)
+        return cache, s
