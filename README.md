@@ -26,3 +26,18 @@ python stress_test.py --fixed   # fixed router: every count is 0
 * `fixed_server.py`: same API with each bug fixed, for comparison
 * `stress_test.py`: 30 client threads + 4 workers, 3 seeded trials, maps each symptom to its line
 * `BUG_REPORT.md`: symptom → exact line → why → fix
+
+## Task 2: O(1) thread-safe LRU embedding cache
+
+```bash
+cd task_2
+python test_lru_cache.py   # 20 unittest cases: single-threaded + concurrent, both modes
+python demo_lru.py         # linked-list walkthrough + quick coarse vs scoped timing
+```
+
+* `lru_cache.py`: `ThreadSafeLRUCache`, a doubly linked list with HEAD/TAIL sentinels plus a dict, so get/put/evict are O(1)
+  * `mode="coarse"` holds the lock across `embed()`; `mode="scoped"` releases it during `embed()` and re-checks after
+  * `single_flight=True` (scoped): concurrent misses on the same key wait instead of embedding twice
+  * `verify_integrity()` checks prev/next symmetry, cycles, list length == dict size, `0 <= size <= capacity`
+* `test_lru_cache.py`: hit-heavy, miss-heavy and eviction-heavy concurrent tests with a live integrity checker
+* `results/`: test log and demo output
